@@ -1,0 +1,2 @@
+# bioinformatikaSIR
+SIR model visualization
