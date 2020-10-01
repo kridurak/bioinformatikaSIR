@@ -16,13 +16,13 @@ I0=1        # infected
 R0=0        # recovered
 S0=N-I0-R0  # everyone else, susceptible to infect
 beta=0.2    # contact rate
-gamma=0./10 # mean recovery rate (1/days)
-time = np.linspace(0,160,160)  # time points (days)
+gamma=1./10 # mean recovery rate (1/days)
+time = np.linspace(0,200,200)  # time points (days)
 
 # SIR model differential equations
 def derivations(y,time,N,beta,gamma): 
     S,I,R=y
-    dS_dt=-beta*S*I            # susceptible deriv
+    dS_dt=-beta*S*I/N          # susceptible deriv
     dI_dt=beta*S*I/N-gamma*I   # infected deriv
     dR_dt=gamma*I              # recovered deriv
     return dS_dt,dI_dt,dR_dt
