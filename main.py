@@ -1,7 +1,6 @@
 from window import Screen
 from settings import *
 from tkinter import *
-from ball import *
 import numpy
 import keyboard
 import time
