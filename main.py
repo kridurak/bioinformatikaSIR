@@ -133,6 +133,9 @@ while 1:
                         distance_x = abs(middle_nx-middle_x)
                         distance_y = abs(middle_x-middle_y)
                         if (distance_x <= distance_y):
+                            if(canvas.itemcget(n, "fill") == "red" or canvas.itemcget(p,"fill") == "red"):
+                                canvas.itemconfig(n,fill="red")
+                                canvas.itemconfig(p,fill="red")
                             if ((yspeed[p] > 0 and y1 < ny1) or (yspeed[p] < 0 and y1 > ny1)):
                                 yspeed[p] = -yspeed[p]
 
