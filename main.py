@@ -41,8 +41,8 @@ corners = [[100,25],[620,25],[620,620],[100,620]]
 canvas.create_line(100,25,620,25,620,620,100,620,100,25)
 
 people = []
-delimiter_x = 15
-delimiter_y = 15
+diameter_x = 15
+diameter_y = 15
 
 number_X = 102
 number_Y = 84
@@ -53,15 +53,15 @@ N_PEOPLE = 30
 for i in range(0,N_PEOPLE):
     # start_x = numpy.random.randint(100,618)
     # start_y = numpy.random.randint(25,618)
-    # if(start_x+delimiter_x >= 618):
-    #     start_x = start_x - delimiter_x
-    # if(start_y+delimiter_y >= 618):
-    #     start_y = start_y - delimiter_y
+    # if(start_x+diameter_x >= 618):
+    #     start_x = start_x - diameter_x
+    # if(start_y+diameter_y >= 618):
+    #     start_y = start_y - diameter_y
 
     start_x = number_X
     start_y = number_Y
 
-    ball = canvas.create_oval(start_x, start_y,start_x+delimiter_x, start_y+delimiter_y, outline="black",
+    ball = canvas.create_oval(start_x, start_y,start_x+diameter_x, start_y+diameter_y, outline="black",
                 fill="snow", width=2)
     people.append(ball)
         
@@ -112,8 +112,8 @@ while 1:
             y1=int(y1)
             y2=int(y2)
             #1st ball middle coords
-            middle_x = x1 + (delimiter_x/2)
-            middle_y = y1 + (delimiter_y/2)
+            middle_x = x1 + (diameter_x/2)
+            middle_y = y1 + (diameter_y/2)
 
             for n in people:
                 if(n != p):
@@ -123,12 +123,12 @@ while 1:
                     ny1=int(ny1)
                     ny2=int(ny2)
                     #2nd ball middle coords
-                    middle_nx = nx1 + (delimiter_x/2)
-                    middle_ny = ny1 + (delimiter_y/2)
+                    middle_nx = nx1 + (diameter_x/2)
+                    middle_ny = ny1 + (diameter_y/2)
 
                     centers_distance = sqrt(((middle_x-middle_nx)*(middle_x-middle_nx))+((middle_ny-middle_y)*(middle_ny-middle_y)))
 
-                    if(centers_distance <= delimiter_x):
+                    if(centers_distance <= diameter_x):
                         print('tukli sa')
                         distance_x = abs(middle_nx-middle_x)
                         distance_y = abs(middle_x-middle_y)
@@ -152,7 +152,7 @@ while 1:
                             if ((xspeed[n] > 0 and nx1 < x1) or (xspeed[n] < 0 and nx1 > x1)):
                                 xspeed[n] = -xspeed[n]
 
-                    # if(abs(middle_x - middle_nx) <= delimiter_x and abs(middle_y - middle_ny) <= delimiter_y):
+                    # if(abs(middle_x - middle_nx) <= diameter_x and abs(middle_y - middle_ny) <= diameter_y):
                     #     if(canvas.itemcget(n, "fill") == "red" or canvas.itemcget(p,"fill") == "red"):
                     #         canvas.itemconfig(n,fill="red")
                     #         canvas.itemconfig(p,fill="red")
