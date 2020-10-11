@@ -1,5 +1,8 @@
 # bioinformatikaSIR
-SIR model visualization
+
+* vytvorenie zakladnej simulacie(screen, area)
+* vlozenie objektov(ludi) do oblasti
+* pohyb objektov, nahodny vyber nakazeneho a odrazanie sa od hranic oblasti
 
 Sources:
-Differential equations: https://towardsdatascience.com/infectious-disease-modelling-beyond-the-basic-sir-model-216369c584c4
+tkinter documentation: https://docs.python.org/3/library/tkinter.html
