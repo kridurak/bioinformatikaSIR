@@ -10,10 +10,11 @@ import matplotlib.animation as animation
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 class human(object):
-    def __init__(self,color,x,y):
+    def __init__(self,color,x,y,day_of_infection):
         self.color = color
         self.x = x
         self.y = y
+        self.day_of_infection = day_of_infection
 
     def setPosition(self,x,y):
         self.x = x
@@ -28,6 +29,25 @@ class human(object):
 
     def getPosition(self):
         return self.x, self.y
+
+    def getColor(self):
+        return self.color
+    
+    def setColor(self, color):
+        self.color = color
+    
+    def setPosition(self,x,y):
+        self.x = x
+        self.y = y
+
+    def getDay(self):
+        return self.day_of_infection
+    
+    def setOneMoreDay(self):
+        self.day_of_infection += 1
+    
+    def setDay(self,Days):
+        self.day_of_infection = Days
 
 # screen = Screen(WINDOW_WIDTH,WINDOW_HEIGTH)
 # screen = screen.screen
