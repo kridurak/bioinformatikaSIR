@@ -1,6 +1,7 @@
 from window import Screen
 from settings import *
 from tkinter import *
+import random
 import tkinter as tk
 from math import *
 import numpy, keyboard, time
@@ -9,98 +10,24 @@ import datetime as dt
 import matplotlib.animation as animation
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
-class human(object):
-    def __init__(self,color,x,y,day_of_infection):
-        self.color = color
-        self.x = x
-        self.y = y
-        self.day_of_infection = day_of_infection
-
-    def setPosition(self,x,y):
-        self.x = x
-        self.y = y
-        return "done"
-
-    def getX(self):
-        return self.x
-
-    def getY(self):
-        return self.y
-
-    def getPosition(self):
-        return self.x, self.y
-
-    def getColor(self):
-        return self.color
-    
-    def setColor(self, color):
-        self.color = color
-    
-    def setPosition(self,x,y):
-        self.x = x
-        self.y = y
-
-    def getDay(self):
-        return self.day_of_infection
-    
-    def setOneMoreDay(self):
-        self.day_of_infection += 1
-    
-    def setDay(self,Days):
-        self.day_of_infection = Days
-
-# screen = Screen(WINDOW_WIDTH,WINDOW_HEIGTH)
-# screen = screen.screen
-
-root = Tk()
-
-left_frame = Frame(root)
-left_frame.pack(side=LEFT)
-
-right_frame = Frame(root)
-right_frame.pack(side=LEFT)
-
-canvas = Canvas(left_frame, width=700,height=700)
-canvas.pack( side = LEFT)
-# canvas2 = Canvas(right_frame, width=700,height=700)
-# canvas2.pack( side = LEFT)
-
-bounds_x = [100, 620]
-bounds_y = [25, 620]
-
-corners = [[100,25],[620,25],[620,620],[100,620]]
-
-canvas.create_line(100,25,620,25,620,620,100,620,100,25)
-
-fig = plt.Figure(figsize=(3,3), dpi=100)
-ax = fig.add_subplot(111)
-ax.set_title('Graph of increase of number infected people')
-ax.set_ylabel('Number infected people')
-ax.set_xlim(0,300)
-ax.set_ylim(0,35)
-graph = FigureCanvasTkAgg(fig,master=right_frame)
-graph.get_tk_widget().pack(side="top",fill='both',expand=False)
-
-fig2 = plt.Figure(figsize=(3,3), dpi=100)
-ax2 = fig2.add_subplot(111)
-ax2.set_title('Susceptible people')
-ax2.set_xlim(0,300)
-ax2.set_ylim(0,35)
-graph2 = FigureCanvasTkAgg(fig2,master=right_frame)
-graph2.get_tk_widget().pack(side="left",fill='both',expand=True)
-
-fig3 = plt.Figure(figsize=(3,3), dpi=100)
-ax3 = fig3.add_subplot(111)
-ax3.set_title('Recovered people')
-ax3.set_xlim(0,300)
-ax3.set_ylim(0,35)
-graph3 = FigureCanvasTkAgg(fig3,master=right_frame)
-graph3.get_tk_widget().pack(side="bottom",fill='both',expand=True)
-
 xs = []
 ys = []
 
 xsus = []
+xrec = []
+
+# number of people
+n_people = 30
+
+# set global variables
+num_infected = 0
+num_sus = 0
+num_recovered = 0
+
+bounds_x = [25, 620]
+bounds_y = [25, 620]
+
+corners = [[25,25],[620,25],[620,620],[25,620]]
 
 people = []
 diameter_x = 15
@@ -109,52 +36,242 @@ diameter_y = 15
 number_X = 102
 number_Y = 84
 
-def animate(infected, timer, susceptible):
+timer = 0
+loop = False
+xspeed,yspeed = [0,0],[0,0]
+infected_id=0
+
+class Human(object):
+    def __init__(self,start_x,start_y,day_of_infection,id_, x , y,color,motion,days_no_motion,last_x,last_y):
+        self.color = color
+        self.id_ = id_
+        self.start_x = start_x
+        self.start_y = start_y
+        self.x = x
+        self.y = y
+        self.day_of_infection = day_of_infection
+        self.motion = motion
+        self.days_no_motion = days_no_motion
+        self.last_x = last_x
+        self.last_y = last_y
+
+    def setPosition(self,x,y):
+        self.x = x
+        self.y = y
+        return "done"
+    
+    def setOneMoreDay(self):
+        self.day_of_infection += 1
+    
+    def recover(self, days):
+        if(self.day_of_infection >= days):
+            self.color = "green"
+    
+    def oneMoreDayNoMotion(self):
+        self.days_no_motion += 1
+
+    def getLastPosition(self):
+        return self.last_x, self.last_y
+
+screen = Screen(WINDOW_WIDTH,WINDOW_HEIGTH)
+screen = screen.screen
+
+left_frame = Frame(screen)
+left_frame.pack(side=LEFT)
+
+right_frame = Frame(screen)
+right_frame.pack(side=LEFT)
+
+canvas = Canvas(left_frame, width=700,height=700)
+canvas.pack( side = LEFT)
+
+canvas.create_line(25,25,620,25,620,620,25,620,25,25)
+
+fig = plt.Figure(figsize=(8,5), dpi=100)
+ax = fig.add_subplot(111)
+ax.set_title('SIR model')
+ax.set_xlim(0,1)
+ax.set_ylim(0,n_people+5)
+
+ax.plot(ys, xs, label='N_Infected', color = 'red')
+ax.plot(ys,xsus, label='N_Susceptible', color = 'blue')
+ax.plot(ys,xrec, label='N_Recovered', color = 'green')
+
+ax.legend()
+graph = FigureCanvasTkAgg(fig,master=right_frame)
+graph.get_tk_widget().pack(side="top",fill='both',expand=False)
+
+
+def animate(infected, timer, susceptible,recovered, n_people):
     # Add x and y to lists
     xs.append(infected)
     ys.append(timer)
     xsus.append(susceptible)
-
-    # Limit x and y lists to 20 items
-    # xs = xs[-20:]
-    # ys = ys[-20:]
+    xrec.append(recovered)
 
     # Draw x and y lists
     ax.clear()
-    ax.set_title('Graph of increase of number infected people')
-    ax.set_xlim(0,300)
-    ax.set_ylim(0,35)
-    ax.plot(ys, xs)
+    ax.set_title('SIR model')
+    ax.set_xlim(0,timer)
+    ax.set_ylim(0,n_people+5)
     
-    ax2.clear()
-    ax2.set_title('Susceptible people')
-    ax2.set_xlim(0,300)
-    ax2.set_ylim(-5,35)
-    ax2.plot(ys, xsus)
-    
-    ax3.clear()
-    ax3.set_title('Recovered people')
-    ax3.set_xlim(0,300)
-    ax3.set_ylim(0,35)
-    ax3.plot(ys, xs)
+    ax.plot(ys, xs, label='N_Infected', color = 'red')
+    ax.plot(ys,xsus, label='N_Susceptible', color = 'blue')
+    ax.plot(ys,xrec, label='N_Recovered', color = 'green')
 
-    # Format plot
-    # animation.FuncAnimation(fig, animate, fargs=(xs, ys),interval = 0)
+    ax.legend()
+    
     graph.draw()
-    # animation.FuncAnimation(fig2, animate, fargs=(xs, ys),interval = 0)
-    graph2.draw()
-    # animation.FuncAnimation(fig3, animate, fargs=(xs, ys),interval = 0)
-    graph3.draw()
 
-def number_of_infected():
+def number_of_infected(people):
     infected = 0
     for p in people:
-        if(canvas.itemcget(p, "fill") == "red"):
+        if(p.color == "red"):
             infected += 1
-    susceptible = len(people) - infected
-    return infected, susceptible
+    return infected
 
-for i in range(0,30):
+def number_of_recovered(people):
+    infected = 0
+    for p in people:
+        if(p.color == "green"):
+            infected += 1
+    return infected
+
+def social_distancing(R,p,xspeed,yspeed,canvas):
+    bounds_x = [p.start_x-R,p.start_x+R]
+    bounds_y = [p.start_y-R,p.start_y+R]
+    p = p.id_
+    x1,y1,x2,y2 = canvas.coords(p)
+    x1=int(x1)
+    x2=int(x2)
+    y1=int(y1)
+    y2=int(y2)
+    #1st ball middle coords
+    middle_x = x1 + (diameter_x/2)
+    middle_y = y1 + (diameter_y/2)
+    #1st move to borded then reverse the xspeed and yspeed and move again from the border
+    if(x1+xspeed[p] < bounds_x[0]):
+        if(y1+yspeed[p] < bounds_y[0]):
+            canvas.move(p,bounds_x[0]-x1,bounds_y[0]-y1)
+            yspeed[p] *= -1
+        elif(y2+yspeed[p]> bounds_y[1]):
+            canvas.move(p,bounds_x[0]-x1,bounds_y[1]-y2)
+            yspeed[p] *= -1
+        else:    
+            canvas.move(p,bounds_x[0]-x1,yspeed[p])
+        xspeed[p] *= -1
+        #canvas.move(infected_id,move_x,move_y)
+    elif(x2+xspeed[p] > bounds_x[1]):
+        if(y1+yspeed[p] < bounds_y[0]):
+            canvas.move(p,bounds_x[1]-x2,bounds_y[0]-y1)
+            yspeed[p] *= -1
+        elif(y2+yspeed[p] > bounds_y[1]):
+            canvas.move(p,bounds_x[1]-x2,bounds_y[1]-y2)
+            yspeed[p] *= -1
+        else:    
+            canvas.move(p,bounds_x[1]-x2,yspeed[p])
+        xspeed[p] *= -1
+    else:
+        if(y1+yspeed[p] < bounds_y[0]):
+            canvas.move(p,xspeed[p],bounds_y[0]-y1)
+            yspeed[p] *= -1
+        elif(y2+yspeed[p] > bounds_y[1]):
+            canvas.move(p,xspeed[p],bounds_y[1]-y2)
+            yspeed[p] *= -1
+        else:    
+            canvas.move(p,xspeed[p],yspeed[p])
+
+def people_intersect(p,n,canvas):
+    intersecting = False
+    x1,y1,x2,y2 = canvas.coords(p)
+    x1=int(x1)
+    x2=int(x2)
+    y1=int(y1)
+    y2=int(y2)
+    #1st ball middle coords
+    middle_x = x1 + (diameter_x/2)
+    middle_y = y1 + (diameter_y/2)
+
+    if(n != p):
+        nx1,ny1,nx2,ny2 = canvas.coords(n)
+        nx1=int(nx1)
+        nx2=int(nx2)
+        ny1=int(ny1)
+        ny2=int(ny2)
+        #2nd ball middle coords
+        middle_nx = nx1 + (diameter_x/2)
+        middle_ny = ny1 + (diameter_y/2)
+
+        centers_distance = sqrt(((middle_x-middle_nx)*(middle_x-middle_nx))+((middle_ny-middle_y)*(middle_ny-middle_y)))
+
+        if(centers_distance <= diameter_x):
+            # print('tukli sa')
+            distance_x = abs(middle_nx-middle_x)
+            distance_y = abs(middle_x-middle_y)
+            if (distance_x <= distance_y):
+                intersecting = True
+                    
+
+                if ((yspeed[p] > 0 and y1 < ny1) or (yspeed[p] < 0 and y1 > ny1)):
+                    yspeed[p] = -yspeed[p]
+
+
+                if ((yspeed[n] > 0 and ny1 < y1) or (yspeed[n] < 0 and ny1 > y1)):
+                    yspeed[n] = -yspeed[n]
+
+
+
+            elif (distance_x > distance_y):
+                if ((xspeed[p] > 0 and x1 < nx1) or (xspeed[p] < 0 and x1 > nx1)):
+                    xspeed[p] = -xspeed[p]
+
+                if ((xspeed[n] > 0 and nx1 < x1) or (xspeed[n] < 0 and nx1 > x1)):
+                    xspeed[n] = -xspeed[n]
+    return intersecting
+
+def border_intersect(p,bounds_x,bounds_y,xspeed,yspeed,canvas):
+    x1,y1,x2,y2 = canvas.coords(p)
+    x1=int(x1)
+    x2=int(x2)
+    y1=int(y1)
+    y2=int(y2)
+    #1st ball middle coords
+    middle_x = x1 + (diameter_x/2)
+    middle_y = y1 + (diameter_y/2)
+    #1st move to borded then reverse the xspeed and yspeed and move again from the border
+    if(x1+xspeed[p] < bounds_x[0]):
+        if(y1+yspeed[p] < bounds_y[0]):
+            canvas.move(p,bounds_x[0]-x1,bounds_y[0]-y1)
+            yspeed[p] *= -1
+        elif(y2+yspeed[p]> bounds_y[1]):
+            canvas.move(p,bounds_x[0]-x1,bounds_y[1]-y2)
+            yspeed[p] *= -1
+        else:    
+            canvas.move(p,bounds_x[0]-x1,yspeed[p])
+        xspeed[p] *= -1
+        #canvas.move(infected_id,move_x,move_y)
+    elif(x2+xspeed[p] > bounds_x[1]):
+        if(y1+yspeed[p] < bounds_y[0]):
+            canvas.move(p,bounds_x[1]-x2,bounds_y[0]-y1)
+            yspeed[p] *= -1
+        elif(y2+yspeed[p] > bounds_y[1]):
+            canvas.move(p,bounds_x[1]-x2,bounds_y[1]-y2)
+            yspeed[p] *= -1
+        else:    
+            canvas.move(p,bounds_x[1]-x2,yspeed[p])
+        xspeed[p] *= -1
+    else:
+        if(y1+yspeed[p] < bounds_y[0]):
+            canvas.move(p,xspeed[p],bounds_y[0]-y1)
+            yspeed[p] *= -1
+        elif(y2+yspeed[p] > bounds_y[1]):
+            canvas.move(p,xspeed[p],bounds_y[1]-y2)
+            yspeed[p] *= -1
+        else:    
+            canvas.move(p,xspeed[p],yspeed[p])
+
+
+for i in range(0,n_people):
     # start_x = numpy.random.randint(100,618)
     # start_y = numpy.random.randint(25,618)
     # if(start_x+delimiter_x >= 618):
@@ -165,9 +282,12 @@ for i in range(0,30):
     start_x = number_X
     start_y = number_Y
 
+    
     ball = canvas.create_oval(start_x, start_y,start_x+diameter_x, start_y+diameter_y, outline="black",
-                fill="snow", width=2)
-    people.append(ball)
+                fill="blue", width=2)
+    
+    human = Human(start_x+diameter_x/2,start_y+diameter_y/2,0,ball,start_x,start_y,"blue",True,0,start_x,start_y)
+    people.append(human)
 
     number_X = number_X + 100
     number_Y = number_Y + 119
@@ -180,9 +300,10 @@ for i in range(0,30):
 #     print('ID:{},coordinates: {}'.format(p,canvas.coords(p)))
 
 
-infected_id = numpy.random.randint(people[0],people[len(people)-1])
-# print(infected_id)
-canvas.itemconfig(infected_id,fill="red")
+# infected_id = numpy.random.randint(people[0],people[len(people)-1])
+# # print(infected_id)
+# num_infected += 1
+# canvas.itemconfig(infected_id,fill="red")
 
 # def motion(event):
 #     x, y = event.x, event.y
@@ -193,8 +314,14 @@ canvas.itemconfig(infected_id,fill="red")
 
 # screen.bind('<Motion>', motion)
 
-loop = False
-xspeed,yspeed = [0,0],[0,0]
+w2 = Scale(screen, from_=15, to=595, orient=HORIZONTAL)
+w2.set(15)
+w2.pack()
+
+slider_value = w2.get()
+
+canvas.create_window(60,650,window=w2)
+
 for _ in range(len(people)):
     move_x,move_y = 0,0
     while(move_x == 0 and move_y == 0):
@@ -203,108 +330,67 @@ for _ in range(len(people)):
     xspeed.append(move_x)
     yspeed.append(move_y)
 
-timer = 0
 
 while 1:
     if(loop):
+        slider_value = w2.get()
         timer += 1
+        if(timer == 10):
+            infected_id = numpy.random.randint(people[0].id_,people[len(people)-1].id_)
+            num_infected += 1
+            for p in people:
+                if(p.id_ == infected_id):
+                    p.color = "red"
+        
+        # choice random human and set middle position
+        rand_number = random.randint(0,100)
+        if(rand_number < 30):
+            people[rand_number].motion = False
+            x = people[rand_number].x
+            y = people[rand_number].y
+            people[rand_number].last_x = x
+            people[rand_number].last_y = y
+            ID = people[rand_number].id_
+            canvas.coords(ID,335,335,335+diameter_x,335+diameter_y)
+
         for p in people:
-            x1,y1,x2,y2 = canvas.coords(p)
-            x1=int(x1)
-            x2=int(x2)
-            y1=int(y1)
-            y2=int(y2)
-            #1st ball middle coords
-            middle_x = x1 + (diameter_x/2)
-            middle_y = y1 + (diameter_y/2)
+            canvas.itemconfig(p.id_,fill=p.color)
+            if(canvas.itemcget(p.id_, "fill") == "red"):
+                p.setOneMoreDay()
+                p.recover(200)
 
-            for n in people:
-                if(n != p):
-                    nx1,ny1,nx2,ny2 = canvas.coords(n)
-                    nx1=int(nx1)
-                    nx2=int(nx2)
-                    ny1=int(ny1)
-                    ny2=int(ny2)
-                    #2nd ball middle coords
-                    middle_nx = nx1 + (diameter_x/2)
-                    middle_ny = ny1 + (diameter_y/2)
-
-                    centers_distance = sqrt(((middle_x-middle_nx)*(middle_x-middle_nx))+((middle_ny-middle_y)*(middle_ny-middle_y)))
-
-                    if(centers_distance <= diameter_x):
-                        # print('tukli sa')
-                        distance_x = abs(middle_nx-middle_x)
-                        distance_y = abs(middle_x-middle_y)
-                        if (distance_x <= distance_y):
-                            if(canvas.itemcget(n, "fill") == "red" or canvas.itemcget(p,"fill") == "red"):
-                                canvas.itemconfig(n,fill="red")
-                                canvas.itemconfig(p,fill="red")
-                            if ((yspeed[p] > 0 and y1 < ny1) or (yspeed[p] < 0 and y1 > ny1)):
-                                yspeed[p] = -yspeed[p]
-
-
-                            if ((yspeed[n] > 0 and ny1 < y1) or (yspeed[n] < 0 and ny1 > y1)):
-                                yspeed[n] = -yspeed[n]
-
-
-
-                        elif (distance_x > distance_y):
-                            if ((xspeed[p] > 0 and x1 < nx1) or (xspeed[p] < 0 and x1 > nx1)):
-                                xspeed[p] = -xspeed[p]
-
-                            if ((xspeed[n] > 0 and nx1 < x1) or (xspeed[n] < 0 and nx1 > x1)):
-                                xspeed[n] = -xspeed[n]
-
-                    # if(abs(middle_x - middle_nx) <= diameter_x and abs(middle_y - middle_ny) <= diameter_y):
-                    #     if(canvas.itemcget(n, "fill") == "red" or canvas.itemcget(p,"fill") == "red"):
-                    #         canvas.itemconfig(n,fill="red")
-                    #         canvas.itemconfig(p,fill="red")
-                        
-                    #     xspeed[n] *= -1
-                    #     xspeed[p] *= -1
-                    #     yspeed[n] *= -1
-                    #     yspeed[p] *= -1
-
-
-            
-            # print('x1:{},x2:{},y1:{},y2:{}'.format(x1,x2,y1,y2))
-            #1st move to borded then reverse the xspeed and yspeed and move again from the border
-            if(x1+xspeed[p] < bounds_x[0]):
-                if(y1+yspeed[p] < bounds_y[0]):
-                    canvas.move(p,bounds_x[0]-x1,bounds_y[0]-y1)
-                    yspeed[p] *= -1
-                elif(y2+yspeed[p]> bounds_y[1]):
-                    canvas.move(p,bounds_x[0]-x1,bounds_y[1]-y2)
-                    yspeed[p] *= -1
-                else:    
-                    canvas.move(p,bounds_x[0]-x1,yspeed[p])
-                xspeed[p] *= -1
-                #canvas.move(infected_id,move_x,move_y)
-            elif(x2+xspeed[p] > bounds_x[1]):
-                if(y1+yspeed[p] < bounds_y[0]):
-                    canvas.move(p,bounds_x[1]-x2,bounds_y[0]-y1)
-                    yspeed[p] *= -1
-                elif(y2+yspeed[p] > bounds_y[1]):
-                    canvas.move(p,bounds_x[1]-x2,bounds_y[1]-y2)
-                    yspeed[p] *= -1
-                else:    
-                    canvas.move(p,bounds_x[1]-x2,yspeed[p])
-                xspeed[p] *= -1
+            if(p.motion == True):
+                social_distancing(slider_value,p,xspeed,yspeed,canvas)
+                border_intersect(p.id_,bounds_x,bounds_y,xspeed,yspeed,canvas)
             else:
-                if(y1+yspeed[p] < bounds_y[0]):
-                    canvas.move(p,xspeed[p],bounds_y[0]-y1)
-                    yspeed[p] *= -1
-                elif(y2+yspeed[p] > bounds_y[1]):
-                    canvas.move(p,xspeed[p],bounds_y[1]-y2)
-                    yspeed[p] *= -1
-                else:    
-                    canvas.move(p,xspeed[p],yspeed[p])
-        number_people = number_of_infected()
-        number_infected = number_people[0]
-        number_susceptible = number_people[1]
-        # print("infected: ",number_infected,", time:", timer)
+                p.oneMoreDayNoMotion()
+                if(p.days_no_motion > 20):
+                    p.motion = True
+                    last_x, last_y = p.getLastPosition()
+                    ID = p.id_
+                    canvas.coords(ID,last_x,last_y,last_x+diameter_x,last_y+diameter_y)
+                    p.days_no_motion = 0
+                    social_distancing(slider_value,p,xspeed,yspeed,canvas)
+                    border_intersect(p.id_,bounds_x,bounds_y,xspeed,yspeed,canvas)
+
+                    
+            for n in people:
+                intersecting = people_intersect(p.id_,n.id_,canvas)
+                if(intersecting):
+                    if(n.color =="red" or p.color == "red"):
+                        if(not(n.color == "green" or p.color == "green")):
+                            p.color = "red"
+                            n.color = "red"
+                        # canvas.itemconfig(n,fill="red")
+                        # canvas.itemconfig(p,fill="red")
+            
+            
+        num_infected = number_of_infected(people)
+        num_recovered = number_of_recovered(people)
+        num_sus = len(people) - num_infected - num_recovered
+        #print("infected: ",num_infected,", time:", timer)
         if(timer % 2 == 0):
-            animate(number_infected,timer,number_susceptible)
+            animate(num_infected,timer,num_sus,num_recovered,n_people)
 
 
     if keyboard.is_pressed('q'):
@@ -316,6 +402,6 @@ while 1:
         break
 
     time.sleep(0)
-    root.update()
+    screen.update()
 
     # screen.update()
