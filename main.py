@@ -53,7 +53,7 @@ canvas.pack( side = LEFT)
 
 canvas.create_line(25,25,620,25,620,620,25,620,25,25)
 
-canvas.create_line(300,300,345,300,345,345,300,345,300,300)
+canvas.create_line(313,313,332,313,332,332,313,332,313,313)
 
 fig = plt.Figure(figsize=(8,5), dpi=100)
 ax = fig.add_subplot(111)
@@ -106,92 +106,94 @@ def number_of_recovered(people):
     return infected
 
 def social_distancing(R,p,n,canvas):
-    intersecting = False
-    x1,y1,x2,y2 = canvas.coords(p.id_)
-    x1=int(x1)
-    x2=int(x2)
-    y1=int(y1)
-    y2=int(y2)
-    #1st ball middle coords
-    middle_x = x1 + (diameter/2)
-    middle_y = y1 + (diameter/2)
-    if(n != p):
-        nx1,ny1,nx2,ny2 = canvas.coords(n.id_)
-        nx1=int(nx1)
-        nx2=int(nx2)
-        ny1=int(ny1)
-        ny2=int(ny2)
-        #2nd ball middle coords
-        middle_nx = nx1 + (diameter/2)
-        middle_ny = ny1 + (diameter/2)
+    if(p.motion and n.motion):
+        intersecting = False
+        x1,y1,x2,y2 = canvas.coords(p.id_)
+        x1=int(x1)
+        x2=int(x2)
+        y1=int(y1)
+        y2=int(y2)
+        #1st ball middle coords
+        middle_x = x1 + (diameter/2)
+        middle_y = y1 + (diameter/2)
+        if(n != p):
+            nx1,ny1,nx2,ny2 = canvas.coords(n.id_)
+            nx1=int(nx1)
+            nx2=int(nx2)
+            ny1=int(ny1)
+            ny2=int(ny2)
+            #2nd ball middle coords
+            middle_nx = nx1 + (diameter/2)
+            middle_ny = ny1 + (diameter/2)
 
-        centers_distance = sqrt(((middle_x-middle_nx)*(middle_x-middle_nx))+((middle_ny-middle_y)*(middle_ny-middle_y)))
-        if(centers_distance <= 25):
-            distance_x = abs(middle_nx-middle_x)
-            distance_y = abs(middle_x-middle_y)
-            if(distance_x > distance_y):
-                if(middle_y > middle_ny):
-                    canvas.move(p.id_,0,25-distance_y)
+            centers_distance = sqrt(((middle_x-middle_nx)*(middle_x-middle_nx))+((middle_ny-middle_y)*(middle_ny-middle_y)))
+            if(centers_distance <= 25):
+                distance_x = abs(middle_nx-middle_x)
+                distance_y = abs(middle_x-middle_y)
+                if(distance_x > distance_y):
+                    if(middle_y > middle_ny):
+                        canvas.move(p.id_,0,25-distance_y)
+                    else:
+                        canvas.move(p.id_,0,(25-distance_y)*-1)
                 else:
-                    canvas.move(p.id_,0,(25-distance_y)*-1)
-            else:
-                if(middle_x > middle_nx):
-                    canvas.move(p.id_,25-distance_x,0)
-                else:
-                    canvas.move(p.id_,(25-distance_x)*-1,0)
+                    if(middle_x > middle_nx):
+                        canvas.move(p.id_,25-distance_x,0)
+                    else:
+                        canvas.move(p.id_,(25-distance_x)*-1,0)
 
-        if(centers_distance <= diameter+R):
-            intersecting = True
-        return intersecting
+            if(centers_distance <= diameter+R):
+                intersecting = True
+            return intersecting
 
 #ak sa stretnu 2 gulicky
 def people_intersect(p,n,canvas):
-    intersecting = False
-    x1,y1,x2,y2 = canvas.coords(p.id_)
-    x1=int(x1)
-    x2=int(x2)
-    y1=int(y1)
-    y2=int(y2)
-    #1st ball middle coords
-    middle_x = x1 + (diameter/2)
-    middle_y = y1 + (diameter/2)
+    if(p.motion and n.motion):
+        intersecting = False
+        x1,y1,x2,y2 = canvas.coords(p.id_)
+        x1=int(x1)
+        x2=int(x2)
+        y1=int(y1)
+        y2=int(y2)
+        #1st ball middle coords
+        middle_x = x1 + (diameter/2)
+        middle_y = y1 + (diameter/2)
 
-    if(n != p):
-        nx1,ny1,nx2,ny2 = canvas.coords(n.id_)
-        nx1=int(nx1)
-        nx2=int(nx2)
-        ny1=int(ny1)
-        ny2=int(ny2)
-        #2nd ball middle coords
-        middle_nx = nx1 + (diameter/2)
-        middle_ny = ny1 + (diameter/2)
+        if(n != p):
+            nx1,ny1,nx2,ny2 = canvas.coords(n.id_)
+            nx1=int(nx1)
+            nx2=int(nx2)
+            ny1=int(ny1)
+            ny2=int(ny2)
+            #2nd ball middle coords
+            middle_nx = nx1 + (diameter/2)
+            middle_ny = ny1 + (diameter/2)
 
-        centers_distance = sqrt(((middle_x-middle_nx)*(middle_x-middle_nx))+((middle_ny-middle_y)*(middle_ny-middle_y)))
+            centers_distance = sqrt(((middle_x-middle_nx)*(middle_x-middle_nx))+((middle_ny-middle_y)*(middle_ny-middle_y)))
 
-        if(centers_distance <= diameter):
-            # print('tukli sa')
-            distance_x = abs(middle_nx-middle_x)
-            distance_y = abs(middle_x-middle_y)
-            if (distance_x <= distance_y):
-                intersecting = True
-                    
+            if(centers_distance <= diameter):
+                # print('tukli sa')
+                distance_x = abs(middle_nx-middle_x)
+                distance_y = abs(middle_x-middle_y)
+                if (distance_x <= distance_y):
+                    intersecting = True
+                        
 
-                if ((p.yspeed > 0 and y1 < ny1) or (p.yspeed < 0 and y1 > ny1)):
-                    p.yspeed = -p.yspeed
-
-
-                if ((n.yspeed > 0 and ny1 < y1) or (n.yspeed < 0 and ny1 > y1)):
-                    n.yspeed = -n.yspeed
+                    if ((p.yspeed > 0 and y1 < ny1) or (p.yspeed < 0 and y1 > ny1)):
+                        p.yspeed = -p.yspeed
 
 
+                    if ((n.yspeed > 0 and ny1 < y1) or (n.yspeed < 0 and ny1 > y1)):
+                        n.yspeed = -n.yspeed
 
-            elif (distance_x > distance_y):
-                if ((p.xspeed > 0 and x1 < nx1) or (p.xspeed < 0 and x1 > nx1)):
-                    p.xspeed = -p.xspeed
 
-                if ((n.xspeed > 0 and nx1 < x1) or (n.xspeed < 0 and nx1 > x1)):
-                    n.xspeed = -n.xspeed
-    return intersecting
+
+                elif (distance_x > distance_y):
+                    if ((p.xspeed > 0 and x1 < nx1) or (p.xspeed < 0 and x1 > nx1)):
+                        p.xspeed = -p.xspeed
+
+                    if ((n.xspeed > 0 and nx1 < x1) or (n.xspeed < 0 and nx1 > x1)):
+                        n.xspeed = -n.xspeed
+        return intersecting
 #ak sa gulicka stretne s vonkajsou hranou oblasti
 def border_intersect(p,bounds_x,bounds_y,canvas):
     x1,y1,x2,y2 = canvas.coords(p.id_)
@@ -340,7 +342,7 @@ while 1:
                     p.color = "red"
             
 # choice random human and set middle position
-        rand_number = random.randint(0,2000)
+        rand_number = random.randint(0,100)
         if(rand_number < 30):
             people[rand_number].motion = False
             x,y,_,_ = canvas.coords(people[rand_number].id_)
@@ -402,5 +404,3 @@ while 1:
 
     time.sleep(0)
     screen.update()
-
-    # screen.update()
