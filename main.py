@@ -3,11 +3,13 @@ from settings import *
 from tkinter import *
 import tkinter as tk
 from math import *
+import random
 import numpy, keyboard, time
 import matplotlib.pyplot as plt
 import datetime as dt
 import matplotlib.animation as animation
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from Human import *
 
 xs = []
 ys = []
@@ -27,62 +29,14 @@ bounds_y = [25, 620]
 corners = [[25,25],[620,25],[620,620],[25,620]]
 
 people = []
-diameter_x = 15
-diameter_y = 15
+diameter = 15
 
 number_X = 102
 number_Y = 84
 
 timer = 0
 loop = False
-xspeed,yspeed = [0,0],[0,0]
 infected_id=0
-class Human(object):
-    def __init__(self,start_x,start_y,day_of_infection,id_, x , y,color):
-        self.color = color
-        self.id_ = id_
-        self.start_x = start_x
-        self.start_y = start_y
-        self.x = x
-        self.y = y
-        self.day_of_infection = day_of_infection
-
-    def setPosition(self,x,y):
-        self.x = x
-        self.y = y
-        return "done"
-
-    def getX(self):
-        return self.x
-
-    def getY(self):
-        return self.y
-
-    def getPosition(self):
-        return self.x, self.y
-
-    def getColor(self):
-        return self.color
-    
-    def setColor(self, color):
-        self.color = color
-    
-    def setPosition(self,x,y):
-        self.x = x
-        self.y = y
-
-    def getDay(self):
-        return self.day_of_infection
-    
-    def setOneMoreDay(self):
-        self.day_of_infection += 1
-    
-    def setDay(self,Days):
-        self.day_of_infection = Days
-    
-    def recover(self, days):
-        if(self.day_of_infection >= days):
-            self.color = "green"
 
 screen = Screen(WINDOW_WIDTH,WINDOW_HEIGTH)
 screen = screen.screen
@@ -99,6 +53,8 @@ canvas.pack( side = LEFT)
 
 canvas.create_line(25,25,620,25,620,620,25,620,25,25)
 
+canvas.create_line(300,300,345,300,345,345,300,345,300,300)
+
 fig = plt.Figure(figsize=(8,5), dpi=100)
 ax = fig.add_subplot(111)
 ax.set_title('SIR model')
@@ -113,7 +69,7 @@ ax.legend()
 graph = FigureCanvasTkAgg(fig,master=right_frame)
 graph.get_tk_widget().pack(side="top",fill='both',expand=False)
 
-
+#graf
 def animate(infected, timer, susceptible,recovered, n_people):
     # Add x and y to lists
     xs.append(infected)
@@ -134,14 +90,14 @@ def animate(infected, timer, susceptible,recovered, n_people):
     ax.legend()
     
     graph.draw()
-
+#pocet nakazenych
 def number_of_infected(people):
     infected = 0
     for p in people:
         if(p.color == "red"):
             infected += 1
     return infected
-
+#pocet vyliecenych
 def number_of_recovered(people):
     infected = 0
     for p in people:
@@ -149,74 +105,70 @@ def number_of_recovered(people):
             infected += 1
     return infected
 
-def social_distancing(R,p,xspeed,yspeed,canvas):
-    bounds_x = [p.start_x-R,p.start_x+R]
-    bounds_y = [p.start_y-R,p.start_y+R]
-    p = p.id_
-    x1,y1,x2,y2 = canvas.coords(p)
-    x1=int(x1)
-    x2=int(x2)
-    y1=int(y1)
-    y2=int(y2)
-    #1st ball middle coords
-    middle_x = x1 + (diameter_x/2)
-    middle_y = y1 + (diameter_y/2)
-    #1st move to borded then reverse the xspeed and yspeed and move again from the border
-    if(x1+xspeed[p] < bounds_x[0]):
-        if(y1+yspeed[p] < bounds_y[0]):
-            canvas.move(p,bounds_x[0]-x1,bounds_y[0]-y1)
-            yspeed[p] *= -1
-        elif(y2+yspeed[p]> bounds_y[1]):
-            canvas.move(p,bounds_x[0]-x1,bounds_y[1]-y2)
-            yspeed[p] *= -1
-        else:    
-            canvas.move(p,bounds_x[0]-x1,yspeed[p])
-        xspeed[p] *= -1
-        #canvas.move(infected_id,move_x,move_y)
-    elif(x2+xspeed[p] > bounds_x[1]):
-        if(y1+yspeed[p] < bounds_y[0]):
-            canvas.move(p,bounds_x[1]-x2,bounds_y[0]-y1)
-            yspeed[p] *= -1
-        elif(y2+yspeed[p] > bounds_y[1]):
-            canvas.move(p,bounds_x[1]-x2,bounds_y[1]-y2)
-            yspeed[p] *= -1
-        else:    
-            canvas.move(p,bounds_x[1]-x2,yspeed[p])
-        xspeed[p] *= -1
-    else:
-        if(y1+yspeed[p] < bounds_y[0]):
-            canvas.move(p,xspeed[p],bounds_y[0]-y1)
-            yspeed[p] *= -1
-        elif(y2+yspeed[p] > bounds_y[1]):
-            canvas.move(p,xspeed[p],bounds_y[1]-y2)
-            yspeed[p] *= -1
-        else:    
-            canvas.move(p,xspeed[p],yspeed[p])
-
-def people_intersect(p,n,canvas):
+def social_distancing(R,p,n,canvas):
     intersecting = False
-    x1,y1,x2,y2 = canvas.coords(p)
+    x1,y1,x2,y2 = canvas.coords(p.id_)
     x1=int(x1)
     x2=int(x2)
     y1=int(y1)
     y2=int(y2)
     #1st ball middle coords
-    middle_x = x1 + (diameter_x/2)
-    middle_y = y1 + (diameter_y/2)
-
+    middle_x = x1 + (diameter/2)
+    middle_y = y1 + (diameter/2)
     if(n != p):
-        nx1,ny1,nx2,ny2 = canvas.coords(n)
+        nx1,ny1,nx2,ny2 = canvas.coords(n.id_)
         nx1=int(nx1)
         nx2=int(nx2)
         ny1=int(ny1)
         ny2=int(ny2)
         #2nd ball middle coords
-        middle_nx = nx1 + (diameter_x/2)
-        middle_ny = ny1 + (diameter_y/2)
+        middle_nx = nx1 + (diameter/2)
+        middle_ny = ny1 + (diameter/2)
+
+        centers_distance = sqrt(((middle_x-middle_nx)*(middle_x-middle_nx))+((middle_ny-middle_y)*(middle_ny-middle_y)))
+        if(centers_distance <= 25):
+            distance_x = abs(middle_nx-middle_x)
+            distance_y = abs(middle_x-middle_y)
+            if(distance_x > distance_y):
+                if(middle_y > middle_ny):
+                    canvas.move(p.id_,0,25-distance_y)
+                else:
+                    canvas.move(p.id_,0,(25-distance_y)*-1)
+            else:
+                if(middle_x > middle_nx):
+                    canvas.move(p.id_,25-distance_x,0)
+                else:
+                    canvas.move(p.id_,(25-distance_x)*-1,0)
+
+        if(centers_distance <= diameter+R):
+            intersecting = True
+        return intersecting
+
+#ak sa stretnu 2 gulicky
+def people_intersect(p,n,canvas):
+    intersecting = False
+    x1,y1,x2,y2 = canvas.coords(p.id_)
+    x1=int(x1)
+    x2=int(x2)
+    y1=int(y1)
+    y2=int(y2)
+    #1st ball middle coords
+    middle_x = x1 + (diameter/2)
+    middle_y = y1 + (diameter/2)
+
+    if(n != p):
+        nx1,ny1,nx2,ny2 = canvas.coords(n.id_)
+        nx1=int(nx1)
+        nx2=int(nx2)
+        ny1=int(ny1)
+        ny2=int(ny2)
+        #2nd ball middle coords
+        middle_nx = nx1 + (diameter/2)
+        middle_ny = ny1 + (diameter/2)
 
         centers_distance = sqrt(((middle_x-middle_nx)*(middle_x-middle_nx))+((middle_ny-middle_y)*(middle_ny-middle_y)))
 
-        if(centers_distance <= diameter_x):
+        if(centers_distance <= diameter):
             # print('tukli sa')
             distance_x = abs(middle_nx-middle_x)
             distance_y = abs(middle_x-middle_y)
@@ -224,128 +176,161 @@ def people_intersect(p,n,canvas):
                 intersecting = True
                     
 
-                if ((yspeed[p] > 0 and y1 < ny1) or (yspeed[p] < 0 and y1 > ny1)):
-                    yspeed[p] = -yspeed[p]
+                if ((p.yspeed > 0 and y1 < ny1) or (p.yspeed < 0 and y1 > ny1)):
+                    p.yspeed = -p.yspeed
 
 
-                if ((yspeed[n] > 0 and ny1 < y1) or (yspeed[n] < 0 and ny1 > y1)):
-                    yspeed[n] = -yspeed[n]
+                if ((n.yspeed > 0 and ny1 < y1) or (n.yspeed < 0 and ny1 > y1)):
+                    n.yspeed = -n.yspeed
 
 
 
             elif (distance_x > distance_y):
-                if ((xspeed[p] > 0 and x1 < nx1) or (xspeed[p] < 0 and x1 > nx1)):
-                    xspeed[p] = -xspeed[p]
+                if ((p.xspeed > 0 and x1 < nx1) or (p.xspeed < 0 and x1 > nx1)):
+                    p.xspeed = -p.xspeed
 
-                if ((xspeed[n] > 0 and nx1 < x1) or (xspeed[n] < 0 and nx1 > x1)):
-                    xspeed[n] = -xspeed[n]
+                if ((n.xspeed > 0 and nx1 < x1) or (n.xspeed < 0 and nx1 > x1)):
+                    n.xspeed = -n.xspeed
     return intersecting
-
-def border_intersect(p,bounds_x,bounds_y,xspeed,yspeed,canvas):
-    x1,y1,x2,y2 = canvas.coords(p)
+#ak sa gulicka stretne s vonkajsou hranou oblasti
+def border_intersect(p,bounds_x,bounds_y,canvas):
+    x1,y1,x2,y2 = canvas.coords(p.id_)
     x1=int(x1)
     x2=int(x2)
     y1=int(y1)
     y2=int(y2)
-    #1st ball middle coords
-    middle_x = x1 + (diameter_x/2)
-    middle_y = y1 + (diameter_y/2)
     #1st move to borded then reverse the xspeed and yspeed and move again from the border
-    if(x1+xspeed[p] < bounds_x[0]):
-        if(y1+yspeed[p] < bounds_y[0]):
-            canvas.move(p,bounds_x[0]-x1,bounds_y[0]-y1)
-            yspeed[p] *= -1
-        elif(y2+yspeed[p]> bounds_y[1]):
-            canvas.move(p,bounds_x[0]-x1,bounds_y[1]-y2)
-            yspeed[p] *= -1
+    if(x1+p.xspeed < bounds_x[0]):
+        if(y1+p.yspeed < bounds_y[0]):
+            canvas.move(p.id_,bounds_x[0]-x1,bounds_y[0]-y1)
+            p.yspeed *= -1
+        elif(y2+p.yspeed> bounds_y[1]):
+            canvas.move(p.id_,bounds_x[0]-x1,bounds_y[1]-y2)
+            p.yspeed *= -1
         else:    
-            canvas.move(p,bounds_x[0]-x1,yspeed[p])
-        xspeed[p] *= -1
+            canvas.move(p.id_,bounds_x[0]-x1,p.yspeed)
+        p.xspeed *= -1
         #canvas.move(infected_id,move_x,move_y)
-    elif(x2+xspeed[p] > bounds_x[1]):
-        if(y1+yspeed[p] < bounds_y[0]):
+    elif(x2+p.xspeed > bounds_x[1]):
+        if(y1+p.yspeed < bounds_y[0]):
             canvas.move(p,bounds_x[1]-x2,bounds_y[0]-y1)
-            yspeed[p] *= -1
-        elif(y2+yspeed[p] > bounds_y[1]):
-            canvas.move(p,bounds_x[1]-x2,bounds_y[1]-y2)
-            yspeed[p] *= -1
+            p.yspeed *= -1
+        elif(y2+p.yspeed > bounds_y[1]):
+            canvas.move(p.id_,bounds_x[1]-x2,bounds_y[1]-y2)
+            p.yspeed *= -1
         else:    
-            canvas.move(p,bounds_x[1]-x2,yspeed[p])
-        xspeed[p] *= -1
+            canvas.move(p.id_,bounds_x[1]-x2,p.yspeed)
+        p.xspeed *= -1
     else:
-        if(y1+yspeed[p] < bounds_y[0]):
-            canvas.move(p,xspeed[p],bounds_y[0]-y1)
-            yspeed[p] *= -1
-        elif(y2+yspeed[p] > bounds_y[1]):
-            canvas.move(p,xspeed[p],bounds_y[1]-y2)
-            yspeed[p] *= -1
+        if(y1+p.yspeed < bounds_y[0]):
+            canvas.move(p.id_,p.xspeed,bounds_y[0]-y1)
+            p.yspeed *= -1
+        elif(y2+p.yspeed > bounds_y[1]):
+            canvas.move(p.id_,p.xspeed,bounds_y[1]-y2)
+            p.yspeed *= -1
         else:    
-            canvas.move(p,xspeed[p],yspeed[p])
+            canvas.move(p.id_,p.xspeed,p.yspeed)
+#ak sa gulicka stretne s vonkajsou hranou oblasti v strede
+def border_of_area_intersect(p,bounds_x,bounds_y,canvas):
+    if(p.motion == True):
+        x1,y1,x2,y2 = canvas.coords(p.id_)
+        x1=int(x1)
+        x2=int(x2)
+        y1=int(y1)
+        y2=int(y2)
+        #1st move to borded then reverse the xspeed and yspeed and move again from the border
 
+        middle_x = x1+diameter/2
+        middle_y = y1+diameter/2
 
+        testX = middle_x
+        testY = middle_y
+        if(middle_x < bounds_x[0]):
+            testX = bounds_x[0]
+        elif(middle_x > bounds_x[1]):
+            testX = bounds_x[1]
+        if(middle_y < bounds_y[0]):
+            testY = bounds_y[0]
+        elif(middle_y > bounds_y[1]):
+            testY = bounds_y[1]
 
-for i in range(0,n_people):
-    # start_x = numpy.random.randint(100,618)
-    # start_y = numpy.random.randint(25,618)
-    # if(start_x+delimiter_x >= 618):
-    #     start_x = start_x - delimiter_x
-    # if(start_y+delimiter_y >= 618):
-    #     start_y = start_y - delimiter_y
+        distance_x = middle_x - testX
+        distance_y = middle_y - testY
+        distance = sqrt((distance_x*distance_x)+(distance_y*distance_y))
 
-    start_x = number_X
-    start_y = number_Y
+        if(distance <= diameter/2):
+            if(testX == bounds_x[0]):
+                canvas.move(p.id_,bounds_x[0]-x2,p.yspeed)
+                p.xspeed *= -1
+            elif(testX == bounds_x[1]):
+                canvas.move(p.id_,bounds_x[1]-x1,p.yspeed)
+                p.xspeed *= -1
 
-    
-    ball = canvas.create_oval(start_x, start_y,start_x+diameter_x, start_y+diameter_y, outline="black",
-                fill="blue", width=2)
-    
-    human = Human(start_x+diameter_x/2,start_y+diameter_y/2,0,ball,start_x,start_y,"blue")
-    people.append(human)
+            if(testY == bounds_y[0]):
+                canvas.move(p.id_,p.xspeed,bounds_y[0]-y2)
+                p.yspeed *= -1
+            elif(testY == bounds_y[1]):
+                canvas.move(p.id_,p.xspeed,bounds_y[1]-y1)
+                p.yspeed *= -1
+#pridaj ludi na canvas
+def spawn_people(n,diameter):
+    forbidden_spawn_coords = [[300,300,345,345]]
+    for i in range(0,n):        
+        passed = False
+        while(not passed):
+            start_x = numpy.random.randint(100,618)
+            start_y = numpy.random.randint(25,618)
+            if(start_x+diameter >= 618):
+                start_x = start_x - diameter
+            if(start_y+diameter >= 618):
+                start_y = start_y - diameter
+            for coords in forbidden_spawn_coords:
+                if(start_x+diameter < coords[0] or start_y+diameter < coords[1] \
+                        or start_x > coords[2] or start_y > coords[3]):
+                        passed = True
+                else:
+                    passed = False
+                    break
 
-    number_X = number_X + 100
-    number_Y = number_Y + 119
-    if(number_X > 620):
-        number_X = 102
-    if(number_Y > 620):
-        number_Y = 84
+        if(passed):
+            forbidden_spawn_coords.append([start_x,start_y,start_x+diameter,start_y+diameter])
 
-# for p in people:
-#     print('ID:{},coordinates: {}'.format(p,canvas.coords(p)))
+            ball = canvas.create_oval(start_x, start_y,start_x+diameter, start_y+diameter, outline="black",
+                        fill="blue", width=2)
+            
+            human = Human(start_x+diameter/2,start_y+diameter/2,0,ball,start_x,start_y,"blue",True,0,start_x,start_y)
+           
+            move_x,move_y = 0,0
+            while(move_x == 0 and move_y == 0):
+                move_x = numpy.random.randint(-10,10)
+                move_y = numpy.random.randint(-10,10)
+            human.xspeed = move_x
+            human.yspeed = move_y
+            people.append(human)
 
+spawn_people(n=n_people,diameter=diameter)
+print(len(people))
+for p in people:
+    print('id',p.id_,'speed:',p.xspeed,',',p.yspeed)
 
-# infected_id = numpy.random.randint(people[0],people[len(people)-1])
-# # print(infected_id)
-# num_infected += 1
-# canvas.itemconfig(infected_id,fill="red")
+widget_label = Label(canvas, text='Number of people in central area: 0')
+widget_label.pack()
+canvas.create_window(125, 640, window=widget_label)  
 
-# def motion(event):
-#     x, y = event.x, event.y
-#     position.configure(text='{},{}'.format(x,y))
+widget_label2 = Label(canvas, text='Infection area of effect:')
+widget_label2.pack()
+canvas.create_window(125, 675, window=widget_label2) 
 
-# position = Label(screen,text = '0,0')
-# canvas.create_window(60,20,window = position)
+widget_slider = Scale(canvas,from_= 0, to = 50, orient=HORIZONTAL)
+widget_slider.set(5)
+widget_slider.pack()
+canvas.create_window(240, 670, window=widget_slider)
 
-# screen.bind('<Motion>', motion)
-
-w2 = Scale(screen, from_=15, to=595, orient=HORIZONTAL)
-w2.set(15)
-w2.pack()
-
-slider_value = w2.get()
-
-canvas.create_window(60,650,window=w2)
-
-for _ in range(len(people)):
-    move_x,move_y = 0,0
-    while(move_x == 0 and move_y == 0):
-        move_x = numpy.random.randint(-10,10)
-        move_y = numpy.random.randint(-10,10)
-    xspeed.append(move_x)
-    yspeed.append(move_y)
+slider_value = widget_slider.get()
 
 while 1:
     if(loop):
-        slider_value = w2.get()
+        slider_value = widget_slider.get()
         timer += 1
         if(timer == 10):
             infected_id = numpy.random.randint(people[0].id_,people[len(people)-1].id_)
@@ -354,24 +339,51 @@ while 1:
                 if(p.id_ == infected_id):
                     p.color = "red"
             
+# choice random human and set middle position
+        rand_number = random.randint(0,2000)
+        if(rand_number < 30):
+            people[rand_number].motion = False
+            x,y,_,_ = canvas.coords(people[rand_number].id_)
+            people[rand_number].last_x = x
+            people[rand_number].last_y = y
+            ID = people[rand_number].id_
+            canvas.coords(ID,315,315,315+diameter,315+diameter)
+
+        n_people_in_area = 0
         for p in people:
+            if(not p.motion):
+                n_people_in_area += 1
             canvas.itemconfig(p.id_,fill=p.color)
             if(canvas.itemcget(p.id_, "fill") == "red"):
                 p.setOneMoreDay()
                 p.recover(200)
-            social_distancing(slider_value,p,xspeed,yspeed,canvas)
-            border_intersect(p.id_,bounds_x,bounds_y,xspeed,yspeed,canvas)
+
+            if(p.motion == True):
+                border_intersect(p,bounds_x,bounds_y,canvas)
+                #border_of_area_intersect(p,[300,345],[300,345],canvas)
+            else:
+                p.oneMoreDayNoMotion()
+
+            if(p.days_no_motion > 20):
+                p.motion = True
+                last_x, last_y = p.getLastPosition()
+                ID = p.id_
+                canvas.coords(ID,last_x,last_y,last_x+diameter,last_y+diameter)
+                p.days_no_motion = 0
+                border_intersect(p,bounds_x,bounds_y,canvas)
+                #border_of_area_intersect(p,[300,345],[300,345],canvas)
             for n in people:
-                intersecting = people_intersect(p.id_,n.id_,canvas)
-                if(intersecting):
+                intersecting_aoe = social_distancing(slider_value,p,n,canvas)
+                intersecting = people_intersect(p,n,canvas)
+                if(intersecting or intersecting_aoe):
                     if(n.color =="red" or p.color == "red"):
-                        if(not n.color == "green" or p.color == "green"):
+                        if(not (n.color == "green" or p.color == "green")):
                             p.color = "red"
                             n.color = "red"
                         # canvas.itemconfig(n,fill="red")
                         # canvas.itemconfig(p,fill="red")
             
-            
+        widget_label.configure(text='Number of people in central area: {}'.format(n_people_in_area)) 
         num_infected = number_of_infected(people)
         num_recovered = number_of_recovered(people)
         num_sus = len(people) - num_infected - num_recovered
