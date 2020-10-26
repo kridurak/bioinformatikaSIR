@@ -204,20 +204,78 @@ print(len(people))
 for p in people:
     print('id',p.id_,'speed:',p.xspeed,',',p.yspeed)
 
-widget_label = Label(canvas, text='Number of people in central area: 0')
-widget_label.pack()
-canvas.create_window(125, 640, window=widget_label)  
+########## MENU ########## 
 
-widget_label2 = Label(canvas, text='Infection area of effect:')
-widget_label2.pack()
-canvas.create_window(125, 675, window=widget_label2) 
-
+# WIDGET_SLIDER
 widget_slider = Scale(canvas,from_= 0, to = 50, orient=HORIZONTAL)
 widget_slider.set(5)
 widget_slider.pack()
 canvas.create_window(240, 670, window=widget_slider)
 
 slider_value = widget_slider.get()
+
+widget_slider2 = Scale(canvas, from_= 0, to = 50, orient=HORIZONTAL)
+widget_slider2.set(0)
+widget_slider2.pack()
+canvas.create_window(510, 670, window=widget_slider2)
+
+slider2_value = widget_slider2.get()
+
+widget_slider3 = Scale(canvas, from_= 0, to = 50, orient=HORIZONTAL)
+widget_slider3.set(0)
+widget_slider3.pack()
+canvas.create_window(770, 670, window=widget_slider3)
+
+slider3_value = widget_slider3.get()
+
+# WIDGET_LABELS
+widget_label = Label(canvas, text='Number of people in central area: 0')
+widget_label.pack()
+canvas.create_window(125, 640, window=widget_label)  
+
+widget_label2 = Label(canvas, text='Infection area of effect:')
+widget_label2.pack()
+canvas.create_window(125, 675, window=widget_label2)
+
+widget_label3 = Label(canvas, text='Size of infection area:')
+widget_label3.pack()
+canvas.create_window(390, 670, window=widget_label3)
+
+widget_label4 = Label(canvas, text='Number of people in central area: 0')
+widget_label4.pack()
+canvas.create_window(570, 640, window=widget_label4)
+
+widget_label5 = Label(canvas, text='Probability of infection (%): 0')
+widget_label5.pack()
+canvas.create_window(350, 640, window=widget_label5)
+
+widget_label6 = Label(canvas, text='Social distancing size:')
+widget_label6.pack()
+canvas.create_window(650, 670, window=widget_label6)
+
+# CHECK_BUTTONS
+chcek_button1_status = IntVar()
+check_button1 = Checkbutton(canvas, text='Soc. dist.', variable=chcek_button1_status)
+check_button1.pack()
+canvas.create_window(750, 640, window=check_button1)
+
+check_btn1 = chcek_button1_status.get()
+
+check_button2_status = IntVar()
+check_button2 = Checkbutton(canvas, text='Testing', variable=check_button2_status)
+check_button2.pack()
+canvas.create_window(850, 640, window=check_button2)
+
+check_btn2 = check_button2_status.get()
+
+check_button3_status = IntVar()
+check_button3 = Checkbutton(canvas, text='Quarantine', variable=check_button3_status)
+check_button3.pack()
+canvas.create_window(950, 640, window=check_button3)
+
+check_btn3 = check_button3_status.get()
+
+####### END OF MENU ###### 
 
 while 1:
     if(loop):
