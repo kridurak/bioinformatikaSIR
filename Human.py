@@ -139,7 +139,7 @@ class Human(object):
                             n.xspeed = -n.xspeed
             return intersecting
 
-    def social_distancing(self,R,n,canvas):
+    def social_distancing(self,R,n,canvas,distance):
         if(self.motion and n.motion and self.in_quarantine == False):
             intersecting = False
             x1,y1,x2,y2 = canvas.coords(self.id_)
@@ -161,7 +161,7 @@ class Human(object):
                 middle_ny = ny1 + (n.diameter/2)
 
                 centers_distance = sqrt(((middle_x-middle_nx)*(middle_x-middle_nx))+((middle_ny-middle_y)*(middle_ny-middle_y)))
-                if(centers_distance <= 25):
+                if(centers_distance <= self.diameter+distance):
                     distance_x = abs(middle_nx-middle_x)
                     distance_y = abs(middle_x-middle_y)
                     if(distance_x > distance_y):
@@ -191,6 +191,6 @@ class Human(object):
     def move_from_quarantine(self,canvas):
         if(self.in_quarantine and self.color == "green"):
             num = random.randint(0,100)
-            if(num <= self.prob_to_quar*100):
+            if(num <= self.prob_from_quar*100):
                 canvas.coords(self.id_,self.last_x,self.last_y,self.last_x+self.diameter,self.last_y+self.diameter)
                 self.in_quarantine = False

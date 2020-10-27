@@ -3,7 +3,6 @@ from settings import *
 from tkinter import *
 import tkinter as tk
 from math import *
-import random
 import numpy, keyboard, time
 import matplotlib.pyplot as plt
 import datetime as dt
@@ -12,7 +11,8 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from Human import *
 
 social_distancing = True
-
+intersecting_aoe = False
+intersecting = False
 xs = []
 ys = []
 
@@ -20,6 +20,7 @@ xsus = []
 xrec = []
 
 n_people = 50
+probability = 0
 
 num_infected = 0
 num_sus = 0
@@ -186,42 +187,118 @@ def spawn_people(n,diameter):
             human.xspeed = move_x
             human.yspeed = move_y
             people.append(human)
-
-def test_everyone(people):
+# testovanie vsetkych ludi okrem karanteny
+def test_everyone():
     for p in people:
         if(p.color == "red" and p.in_quarantine == False):
             p.prob_to_quar = 1
-            p.move_to_quarantine
-
-def test_people_in_quarantine(people):
+            p.prob_from_quar = 0
+            p.move_to_quarantine(canvas)
+#testovanie ludi v karantene
+def test_people_in_quarantine():
     for p in people:
         if(p.in_quarantine == True and p.color != "red"):
             p.prob_from_quar = 1
-            p.move_from_quarantine
+            p.move_from_quarantine(canvas)
+# spocitanie ludi v karantene
+def number_of_people_in_quarantine():
+    number = 0
+    for p in people:
+        if(p.in_quarantine == True):
+            number += 1
+    return number
 
 spawn_people(n=n_people,diameter=diameter)
 print(len(people))
 for p in people:
     print('id',p.id_,'speed:',p.xspeed,',',p.yspeed)
 
+########## MENU ########## 
+
+# WIDGET_SLIDER
+widget_slider = Scale(canvas,from_= 0, to = 50, orient=HORIZONTAL)
+widget_slider.set(15)
+widget_slider.pack()
+canvas.create_window(200, 670, window=widget_slider)
+
+area_slider = widget_slider.get()
+
+widget_slider2 = Scale(canvas, from_= 0, to = 100, orient=HORIZONTAL)
+widget_slider2.set(20)
+widget_slider2.pack()
+canvas.create_window(445, 670, window=widget_slider2)
+
+widget_slider3 = Scale(canvas, from_= 0, to = 20, orient=HORIZONTAL)
+widget_slider3.set(5)
+widget_slider3.pack()
+canvas.create_window(680, 670, window=widget_slider3)
+
+slider3_value = widget_slider3.get()
+
+# WIDGET_LABELS
 widget_label = Label(canvas, text='Number of people in central area: 0')
 widget_label.pack()
 canvas.create_window(125, 640, window=widget_label)  
 
 widget_label2 = Label(canvas, text='Infection area of effect:')
 widget_label2.pack()
-canvas.create_window(125, 675, window=widget_label2) 
+canvas.create_window(92, 677, window=widget_label2)
 
-widget_slider = Scale(canvas,from_= 0, to = 50, orient=HORIZONTAL)
-widget_slider.set(5)
-widget_slider.pack()
-canvas.create_window(240, 670, window=widget_slider)
+widget_label3 = Label(canvas, text='Probability of infection:')
+widget_label3.pack()
+canvas.create_window(335, 677, window=widget_label3)
 
-slider_value = widget_slider.get()
+widget_label4 = Label(canvas, text='Number of people in quarantine: 0')
+widget_label4.pack()
+canvas.create_window(600, 640, window=widget_label4)
+
+widget_label5 = Label(canvas, text='Probability of infection (%): 0')
+widget_label5.pack()
+canvas.create_window(350, 640, window=widget_label5)
+
+widget_label6 = Label(canvas, text='Social distancing size:')
+widget_label6.pack()
+canvas.create_window(566, 677, window=widget_label6)
+
+# CHECK_BUTTONS
+chcek_button1_status = IntVar()
+check_button1 = Checkbutton(canvas, text='Soc. dist.', variable=chcek_button1_status)
+check_button1.pack()
+canvas.create_window(750, 640, window=check_button1)
+
+check_btn1 = chcek_button1_status.get()
+
+testing_button = Button(canvas,text = "Testing", command = test_everyone)
+canvas.create_window(850,640,window = testing_button)
+
+quarantine_button = Button(canvas,text = "Quarantine", command = test_people_in_quarantine)
+canvas.create_window(950,640,window = quarantine_button)
+
+# check_button2_status = IntVar()
+# check_button2 = Checkbutton(canvas, text='Testing', variable=check_button2_status)
+# check_button2.pack()
+# canvas.create_window(850, 640, window=check_button2)
+
+# check_btn2 = check_button2_status.get()
+
+# check_button3_status = IntVar()
+# check_button3 = Checkbutton(canvas, text='Quarantine', variable=check_button3_status)
+# check_button3.pack()
+# canvas.create_window(950, 640, window=check_button3)
+
+# check_btn3 = check_button3_status.get()
+
+####### END OF MENU ###### 
 
 while 1:
     if(loop):
-        slider_value = widget_slider.get()
+        social_distancing = chcek_button1_status.get()
+        area_slider = widget_slider.get()
+        probability_slider = widget_slider2.get()
+        if(probability != probability_slider):
+            for p in people:
+                p.prob_of_infection = probability_slider
+                probability = probability_slider
         timer += 1
         if(timer == 10):
             infected_id = numpy.random.randint(people[0].id_,people[len(people)-1].id_)
@@ -244,12 +321,12 @@ while 1:
         n_people_in_area = 0
         for p in people:
             if(p.color == "red"):
-                p.prob_to_quar = 0.5
+                p.prob_to_quar = 0.01
                 p.prob_from_quar = 0
                 p.move_to_quarantine(canvas)
             else:
                 p.prob_to_quar = 0
-                p.prob_from_quar = 0.9
+                p.prob_from_quar = 0.1
                 p.move_from_quarantine(canvas)
             if(p.in_quarantine):
                 bounds_x = bounds_x_quar
@@ -283,15 +360,21 @@ while 1:
                 #border_of_area_intersect(p,[300,345],[300,345],canvas)
             for n in people:
                 if(p.in_quarantine == False and n.in_quarantine == False):
-                    intersecting_aoe = p.social_distancing(slider_value,n,canvas)
-                    intersecting = p.people_intersect(n,canvas)
+                    if(social_distancing):
+                        distance_slider = widget_slider3.get()
+                        intersecting_aoe = p.social_distancing(area_slider,n,canvas,distance_slider)
+                    else:
+                        intersecting = p.people_intersect(n,canvas)
                     if(intersecting or intersecting_aoe):
                         if(n.color =="red" or p.color == "red"):
                             if(not (n.color == "green" or p.color == "green")):
-                                p.color = "red"
-                                n.color = "red"
-            
-        widget_label.configure(text='Number of people in central area: {}'.format(n_people_in_area)) 
+                                random_number = numpy.random.randint(0,100)
+                                if(random_number <= p.prob_of_infection):
+                                    p.color = "red"
+                                    n.color = "red"
+        widget_label.configure(text='Number of people in central area: {}'.format(n_people_in_area))
+        widget_label5.configure(text='Probability of infection (%): {}'.format(probability_slider)) 
+        widget_label4.configure(text='Number of people in quarantine: {}'.format(number_of_people_in_quarantine())) 
         num_infected = number_of_infected(people)
         num_recovered = number_of_recovered(people)
         num_sus = len(people) - num_infected - num_recovered
