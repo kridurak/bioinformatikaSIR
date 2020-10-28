@@ -19,6 +19,7 @@ class Human(object):
         self.in_quarantine  = False
         self.prob_to_quar = 0
         self.prob_from_quar = 0
+        self.prob_of_infection = 0
         self.diameter = diameter
 
     def setPosition(self,x,y):

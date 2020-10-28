@@ -33,7 +33,7 @@ bounds_x_quar = [625, 950]
 bounds_y_quar = [250, 620]
 
 people = []
-diameter = 15
+diameter = 10
 
 number_X = 102
 number_Y = 84
@@ -366,9 +366,15 @@ while 1:
                     else:
                         intersecting = p.people_intersect(n,canvas)
                     if(intersecting or intersecting_aoe):
+                        if(intersecting):
+                            p.prob_of_infection = 100
+                        else:
+                            p.prob_of_infection = probability_slider
                         if(n.color =="red" or p.color == "red"):
                             if(not (n.color == "green" or p.color == "green")):
                                 random_number = numpy.random.randint(0,100)
+                                if(p.motion == False):
+                                    p.prob_of_infection += 20
                                 if(random_number <= p.prob_of_infection):
                                     p.color = "red"
                                     n.color = "red"
