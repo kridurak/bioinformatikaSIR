@@ -11,38 +11,6 @@ import matplotlib.animation as animation
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from Human import *
 
-social_distancing = True
-intersecting_aoe = False
-intersecting = False
-xs = []
-ys = []
-
-xsus = []
-xrec = []
-
-n_people = 50
-probability = 0
-
-num_infected = 0
-num_sus = 0
-num_recovered = 0
-
-bounds_x_main = [25, 620]
-bounds_y_main = [25, 620]
-
-bounds_x_quar = [625, 950]
-bounds_y_quar = [250, 620]
-
-people = []
-diameter = 10
-
-number_X = 102
-number_Y = 84
-
-timer = 0
-loop = False
-infected_id=0
-
 screen = Screen(WINDOW_WIDTH,WINDOW_HEIGTH)
 screen = screen.screen
 
@@ -56,8 +24,6 @@ notebook.add(tab2, text='Tab 2')
 
 notebook.pack(expand = 1, fill="both")
 
-tabs = notebook.winfo_children()
-
 left_frame = Frame(tab1)
 left_frame.pack(side=LEFT)
 
@@ -67,11 +33,19 @@ right_frame.pack(side=RIGHT)
 canvas = Canvas(left_frame, width=1000,height=WINDOW_HEIGTH)
 canvas.pack( side = LEFT)
 
-canvas.create_line(25,25,620,25,620,620,25,620,25,25)
+canvas2 = Canvas(tab2, width = 1000, height = WINDOW_HEIGTH)
+canvas2.pack( side = LEFT)
 
-canvas.create_line(313,313,332,313,332,332,313,332,313,313)
+for i in range(0,9):
+    bounds_x = bounds_x_main2[i]
+    bounds_y = bounds_y_main2[i]
+    canvas2.create_rectangle(bounds_x[0],bounds_y[0],bounds_x[1],bounds_y[1])
 
-canvas.create_line(625,250,950,250,950,620,625,620,625,250)
+canvas2.create_rectangle(bounds_x_quar2[0],bounds_y_quar2[0],bounds_x_quar2[1],bounds_y_quar2[1])
+
+canvas.create_rectangle(bounds_x_main[0],bounds_y_main[0],bounds_x_main[1],bounds_y_main[1])
+canvas.create_rectangle(313,313,332,332)
+canvas.create_rectangle(bounds_x_quar[0],bounds_y_quar[0],bounds_x_quar[1],bounds_y_quar[1])
 
 fig = plt.Figure(figsize=(8,5), dpi=100)
 ax = fig.add_subplot(111)
@@ -112,7 +86,7 @@ def animate(infected, timer, susceptible,recovered, n_people):
 def number_of_infected(people):
     infected = 0
     for p in people:
-        if(p.color == "red"):
+        if(p.color == "red" or p.color == "yellow"):
             infected += 1
     return infected
 #pocet vyliecenych
@@ -283,137 +257,131 @@ canvas.create_window(750, 640, window=check_button1)
 
 check_btn1 = chcek_button1_status.get()
 
+# BUTTON
 testing_button = Button(canvas,text = "Testing", command = test_everyone)
 canvas.create_window(850,640,window = testing_button)
 
 quarantine_button = Button(canvas,text = "Quarantine", command = test_people_in_quarantine)
 canvas.create_window(950,640,window = quarantine_button)
 
-# check_button2_status = IntVar()
-# check_button2 = Checkbutton(canvas, text='Testing', variable=check_button2_status)
-# check_button2.pack()
-# canvas.create_window(850, 640, window=check_button2)
-
-# check_btn2 = check_button2_status.get()
-
-# check_button3_status = IntVar()
-# check_button3 = Checkbutton(canvas, text='Quarantine', variable=check_button3_status)
-# check_button3.pack()
-# canvas.create_window(950, 640, window=check_button3)
-
-# check_btn3 = check_button3_status.get()
-
 ####### END OF MENU ###### 
 
+tabID = notebook.index(notebook.select())
+
 while 1:
-    #print(notebook.index(notebook.select()))
-    if(loop):
-        social_distancing = chcek_button1_status.get()
-        area_slider = widget_slider.get()
-        probability_slider = widget_slider2.get()
-        if(probability != probability_slider):
+    tabID=notebook.index(notebook.select())
+    if(tabID == 0):
+        if(loop):
+            social_distancing = chcek_button1_status.get()
+            area_slider = widget_slider.get()
+            probability_slider = widget_slider2.get()
+            if(probability != probability_slider):
+                for p in people:
+                    p.prob_of_infection = probability_slider
+                    probability = probability_slider
+            timer += 1
+            if(timer == 10):
+                infected_id = numpy.random.randint(people[0].id_,people[len(people)-1].id_)
+                num_infected += 1
+                for p in people:
+                    if(p.id_ == infected_id):
+                        p.color = "red"
+                
+    # choice random human and set middle position
+            rand_number = random.randint(0,100)
+            if(rand_number < 30):
+                if(people[rand_number].in_quarantine == False):
+                    people[rand_number].motion = False
+                    x,y,_,_ = canvas.coords(people[rand_number].id_)
+                    people[rand_number].last_x = x
+                    people[rand_number].last_y = y
+                    ID = people[rand_number].id_
+                    canvas.coords(ID,315,315,315+diameter,315+diameter)
+
+            n_people_in_area = 0
             for p in people:
-                p.prob_of_infection = probability_slider
-                probability = probability_slider
-        timer += 1
-        if(timer == 10):
-            infected_id = numpy.random.randint(people[0].id_,people[len(people)-1].id_)
-            num_infected += 1
-            for p in people:
-                if(p.id_ == infected_id):
-                    p.color = "red"
-            
-# choice random human and set middle position
-        rand_number = random.randint(0,100)
-        if(rand_number < 30):
-            if(people[rand_number].in_quarantine == False):
-                people[rand_number].motion = False
-                x,y,_,_ = canvas.coords(people[rand_number].id_)
-                people[rand_number].last_x = x
-                people[rand_number].last_y = y
-                ID = people[rand_number].id_
-                canvas.coords(ID,315,315,315+diameter,315+diameter)
+                if(p.color == "red"):
+                    p.prob_to_quar = 0.01
+                    p.prob_from_quar = 0
+                    p.move_to_quarantine(canvas)
+                else:
+                    p.prob_to_quar = 0
+                    p.prob_from_quar = 0.1
+                    p.move_from_quarantine(canvas)
+                if(p.in_quarantine):
+                    bounds_x = bounds_x_quar
+                    bounds_y = bounds_y_quar
+                else:
+                    bounds_x = bounds_x_main
+                    bounds_y = bounds_y_main
 
-        n_people_in_area = 0
-        for p in people:
-            if(p.color == "red"):
-                p.prob_to_quar = 0.01
-                p.prob_from_quar = 0
-                p.move_to_quarantine(canvas)
-            else:
-                p.prob_to_quar = 0
-                p.prob_from_quar = 0.1
-                p.move_from_quarantine(canvas)
-            if(p.in_quarantine):
-                bounds_x = bounds_x_quar
-                bounds_y = bounds_y_quar
-            else:
-                bounds_x = bounds_x_main
-                bounds_y = bounds_y_main
+                if(not p.motion):
+                    n_people_in_area += 1
+                canvas.itemconfig(p.id_,fill=p.color)
+                if(p.color == "red" or p.color == "yellow"):
+                    p.setOneMoreDay()
+                    p.recover(200)
 
-            if(not p.motion):
-                n_people_in_area += 1
-            canvas.itemconfig(p.id_,fill=p.color)
-            if(p.color == "red" or p.color == "yellow"):
-                p.setOneMoreDay()
-                p.recover(200)
+                if(p.motion == True):
+                    p.border_intersect(bounds_x,bounds_y,canvas)
+                    p.move_self(canvas)
+                    #border_of_area_intersect(p,[300,345],[300,345],canvas)
+                else:
+                    p.oneMoreDayNoMotion()
 
-            if(p.motion == True):
-                p.border_intersect(bounds_x,bounds_y,canvas)
-                p.move_self(canvas)
-                #border_of_area_intersect(p,[300,345],[300,345],canvas)
-            else:
-                p.oneMoreDayNoMotion()
-
-            if(p.days_no_motion > 20):
-                p.motion = True
-                last_x, last_y = p.getLastPosition()
-                ID = p.id_
-                canvas.coords(ID,last_x,last_y,last_x+diameter,last_y+diameter)
-                p.days_no_motion = 0
-                p.border_intersect(bounds_x,bounds_y,canvas)
-                p.move_self(canvas)
-                #border_of_area_intersect(p,[300,345],[300,345],canvas)
-            for n in people:
-                if(p.in_quarantine == False and n.in_quarantine == False):
-                    if(social_distancing):
-                        distance_slider = widget_slider3.get()
-                        intersecting_aoe = p.social_distancing(area_slider,n,canvas,distance_slider)
-                    else:
-                        intersecting = p.people_intersect(n,canvas)
-                    #nakaza
-                    if(intersecting or intersecting_aoe):
-                        if(intersecting):
-                            p.prob_of_infection = 100
+                if(p.days_no_motion > 20):
+                    p.motion = True
+                    last_x, last_y = p.getLastPosition()
+                    ID = p.id_
+                    canvas.coords(ID,last_x,last_y,last_x+diameter,last_y+diameter)
+                    p.days_no_motion = 0
+                    p.border_intersect(bounds_x,bounds_y,canvas)
+                    p.move_self(canvas)
+                    #border_of_area_intersect(p,[300,345],[300,345],canvas)
+                for n in people:
+                    if(p.in_quarantine == False and n.in_quarantine == False):
+                        if(social_distancing):
+                            distance_slider = widget_slider3.get()
+                            intersecting_aoe = p.social_distancing(area_slider,n,canvas,distance_slider)
                         else:
-                            p.prob_of_infection = probability_slider
-                        if(n.color =="red" or p.color == "red" or n.color == "yellow" or p.color == "yellow"):
-                            if(not (n.color == "green" or p.color == "green")):
-                                random_number = numpy.random.randint(0,100)
-                                if(p.motion == False):
-                                    p.prob_of_infection += 20
-                                if(random_number <= p.prob_of_infection):
+                            intersecting = p.people_intersect(n,canvas)
+                        #nakaza
+                        if(intersecting or intersecting_aoe):
+                            if(intersecting):
+                                p.prob_of_infection = 100
+                            else:
+                                p.prob_of_infection = probability_slider
+                            if(n.color =="red" or p.color == "red" or n.color == "yellow" or p.color == "yellow"):
+                                if(not (n.color == "green" or p.color == "green")):
                                     random_number = numpy.random.randint(0,100)
-                                    if(p.color == "blue"):
-                                        if(random_number <= 70):
-                                            p.color = "red"
-                                        else:
-                                            p.color = "yellow"
-                                    if(n.color == "blue"):
-                                        if(random_number <= 70):
-                                            n.color = "red"
-                                        else:
-                                            n.color = "yellow"
-                                        
-        widget_label.configure(text='Number of people in central area: {}'.format(n_people_in_area))
-        widget_label5.configure(text='Probability of infection (%): {}'.format(probability_slider)) 
-        widget_label4.configure(text='Number of people in quarantine: {}'.format(number_of_people_in_quarantine())) 
-        num_infected = number_of_infected(people)
-        num_recovered = number_of_recovered(people)
-        num_sus = len(people) - num_infected - num_recovered
-        #print("infected: ",num_infected,", time:", timer)
-        if(timer % 2 == 0):
-            animate(num_infected,timer,num_sus,num_recovered,n_people)
+                                    if(p.motion == False):
+                                        p.prob_of_infection += 20
+                                    if(random_number <= p.prob_of_infection):
+                                        random_number = numpy.random.randint(0,100)
+                                        if(p.color == "blue"):
+                                            if(random_number <= 70):
+                                                p.color = "red"
+                                            else:
+                                                p.color = "yellow"
+                                        if(n.color == "blue"):
+                                            if(random_number <= 70):
+                                                n.color = "red"
+                                            else:
+                                                n.color = "yellow"
+                                            
+            widget_label.configure(text='Number of people in central area: {}'.format(n_people_in_area))
+            widget_label5.configure(text='Probability of infection (%): {}'.format(probability_slider)) 
+            widget_label4.configure(text='Number of people in quarantine: {}'.format(number_of_people_in_quarantine())) 
+            num_infected = number_of_infected(people)
+            num_recovered = number_of_recovered(people)
+            num_sus = len(people) - num_infected - num_recovered
+            #print("infected: ",num_infected,", time:", timer)
+            if(timer % 2 == 0):
+                animate(num_infected,timer,num_sus,num_recovered,n_people)
+        #print('som na tabe1')
+    elif(tabID == 1):
+        pass
+        #print('som na tabe2')
 
 
     if keyboard.is_pressed('q'):

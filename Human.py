@@ -52,8 +52,13 @@ class Human(object):
     def getLastPosition(self):
         return self.last_x, self.last_y
 
-    def move_self(self,canvas):
-        canvas.move(self.id_,self.xspeed,self.yspeed)
+    def move_self(self,canvas, xspeed=None, yspeed =None):
+        if(xspeed == None):
+            xspeed = self.xspeed
+        if(yspeed == None):
+            yspeed = self.yspeed
+        
+        canvas.move(self.id_,xspeed,yspeed)
     
     def border_intersect(self,bounds_x,bounds_y,canvas):
         x1,y1,x2,y2 = canvas.coords(self.id_)
