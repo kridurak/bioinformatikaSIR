@@ -11,6 +11,7 @@ import matplotlib.animation as animation
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from Human import *
 
+
 screen = Screen(WINDOW_WIDTH,WINDOW_HEIGTH)
 screen = screen.screen
 
@@ -88,6 +89,7 @@ def number_of_infected(people):
     for p in people:
         if(p.color == "red" or p.color == "yellow"):
             infected += 1
+    
     return infected
 #pocet vyliecenych
 def number_of_recovered(people):
@@ -186,11 +188,11 @@ def test_everyone():
 #testovanie ludi v karantene
 def test_people_in_quarantine():
     for p in people:
-        if(p.in_quarantine == True and p.color != "red"):
+        if(p.in_quarantine == True and p.color != "red" and p.color != "yellow"):
             p.prob_from_quar = 1
             p.move_from_quarantine(canvas)
 # spocitanie ludi v karantene
-def number_of_people_in_quarantine():
+def number_of_people_in_quarantine(people):
     number = 0
     for p in people:
         if(p.in_quarantine == True):
@@ -292,11 +294,11 @@ while 1:
             if(rand_number < 30):
                 if(people[rand_number].in_quarantine == False):
                     people[rand_number].motion = False
-                    x,y,_,_ = canvas.coords(people[rand_number].id_)
-                    people[rand_number].last_x = x
-                    people[rand_number].last_y = y
-                    ID = people[rand_number].id_
-                    canvas.coords(ID,315,315,315+diameter,315+diameter)
+                    #x1,y1,_,_ = canvas.coords(people[rand_number].id_)
+                    people[rand_number].last_x = people[rand_number].x
+                    people[rand_number].last_y = people[rand_number].y
+                    people[rand_number].move_self(canvas,315-people[rand_number].x,315-people[rand_number].y)
+                    #canvas.coords(people[rand_number].id_,315,315,315+diameter,315+diameter)
 
             n_people_in_area = 0
             for p in people:
@@ -324,27 +326,25 @@ while 1:
 
                 if(p.motion == True):
                     p.border_intersect(bounds_x,bounds_y,canvas)
+                    #p.border_intersect2(bounds_x,bounds_y,canvas)
                     p.move_self(canvas)
-                    #border_of_area_intersect(p,[300,345],[300,345],canvas)
                 else:
                     p.oneMoreDayNoMotion()
 
                 if(p.days_no_motion > 20):
                     p.motion = True
                     last_x, last_y = p.getLastPosition()
-                    ID = p.id_
-                    canvas.coords(ID,last_x,last_y,last_x+diameter,last_y+diameter)
                     p.days_no_motion = 0
-                    p.border_intersect(bounds_x,bounds_y,canvas)
-                    p.move_self(canvas)
-                    #border_of_area_intersect(p,[300,345],[300,345],canvas)
+                    p.move_self(canvas,last_x-p.x,last_y-p.y)
                 for n in people:
                     if(p.in_quarantine == False and n.in_quarantine == False):
                         if(social_distancing):
                             distance_slider = widget_slider3.get()
                             intersecting_aoe = p.social_distancing(area_slider,n,canvas,distance_slider)
+                            #intersecting_aoe = p.social_distancing2(area_slider,n,canvas,distance_slider)
                         else:
                             intersecting = p.people_intersect(n,canvas)
+                            #intersecting = p.people_intersect2(n,canvas)
                         #nakaza
                         if(intersecting or intersecting_aoe):
                             if(intersecting):
@@ -371,7 +371,7 @@ while 1:
                                             
             widget_label.configure(text='Number of people in central area: {}'.format(n_people_in_area))
             widget_label5.configure(text='Probability of infection (%): {}'.format(probability_slider)) 
-            widget_label4.configure(text='Number of people in quarantine: {}'.format(number_of_people_in_quarantine())) 
+            widget_label4.configure(text='Number of people in quarantine: {}'.format(number_of_people_in_quarantine(people))) 
             num_infected = number_of_infected(people)
             num_recovered = number_of_recovered(people)
             num_sus = len(people) - num_infected - num_recovered

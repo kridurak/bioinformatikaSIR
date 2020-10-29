@@ -58,6 +58,9 @@ class Human(object):
         if(yspeed == None):
             yspeed = self.yspeed
         
+        self.x += xspeed
+        self.y += yspeed
+
         canvas.move(self.id_,xspeed,yspeed)
     
     def border_intersect(self,bounds_x,bounds_y,canvas):
@@ -95,6 +98,37 @@ class Human(object):
             elif(y2+self.yspeed > bounds_y[1]):
                 canvas.move(self.id_,self.xspeed,bounds_y[1]-y2)
                 self.yspeed *= -1
+        self.x,self.y,_,_ = canvas.coords(self.id_)
+
+    def border_intersect2(self,bounds_x,bounds_y,canvas):
+        #1st move to borded then reverse the xspeed and yspeed and move again from the border
+        if(self.x+self.xspeed < bounds_x[0]):
+            if(self.y+self.yspeed < bounds_y[0]):
+                self.move_self(canvas, xspeed=bounds_x[0]-self.x,yspeed=bounds_y[0]-self.y)
+                self.yspeed *= -1
+            elif(self.y+self.diameter+self.yspeed > bounds_y[1]):
+                self.move_self(canvas, xspeed=bounds_x[0]-self.x,yspeed=bounds_y[1]-(self.y+self.diameter))
+                self.yspeed *= -1
+            else:    
+                self.move_self(canvas, xspeed=bounds_x[0]-self.x,yspeed=self.yspeed)
+            self.xspeed *= -1
+        elif(self.x+self.diameter+self.xspeed > bounds_x[1]):
+            if(self.y+self.yspeed < bounds_y[0]):
+                self.move_self(canvas, xspeed=bounds_x[1]-(self.x+self.diameter),yspeed=bounds_y[0]-self.y)
+                self.yspeed *= -1
+            elif(self.y+self.diameter+self.yspeed > bounds_y[1]):
+                self.move_self(canvas, xspeed=bounds_x[1]-(self.x+self.diameter),yspeed=bounds_y[1]-(self.y+self.diameter))
+                self.yspeed *= -1
+            else:    
+                self.move_self(canvas,xspeed=bounds_x[1]-(self.x+self.diameter),yspeed=self.yspeed)
+            self.xspeed *= -1
+        else:
+            if(self.y+self.yspeed < bounds_y[0]):
+                self.move_self(canvas,xspeed=self.xspeed,yspeed=bounds_y[0]-self.y)
+                self.yspeed *= -1
+            elif(self.y+self.diameter+self.yspeed > bounds_y[1]):
+                self.move_self(canvas,xspeed=self.xspeed,yspeed=bounds_y[1]-(self.y+self.diameter))
+                self.yspeed *= -1
 
     def people_intersect(self,n,canvas):
         if(self.motion and n.motion and self.in_quarantine == False):
@@ -127,7 +161,6 @@ class Human(object):
                     if (distance_x <= distance_y):
                         intersecting = True
                             
-
                         if ((self.yspeed > 0 and y1 < ny1) or (self.yspeed < 0 and y1 > ny1)):
                             self.yspeed = -self.yspeed
 
@@ -135,13 +168,49 @@ class Human(object):
                         if ((n.yspeed > 0 and ny1 < y1) or (n.yspeed < 0 and ny1 > y1)):
                             n.yspeed = -n.yspeed
 
-
-
                     elif (distance_x > distance_y):
                         if ((self.xspeed > 0 and x1 < nx1) or (self.xspeed < 0 and x1 > nx1)):
                             self.xspeed = -self.xspeed
 
                         if ((n.xspeed > 0 and nx1 < x1) or (n.xspeed < 0 and nx1 > x1)):
+                            n.xspeed = -n.xspeed
+            return intersecting
+
+    def people_intersect2(self,n,canvas):
+        if(self.motion and n.motion and self.in_quarantine == False):
+            intersecting = False
+            #1st ball middle coords
+            middle_x = self.x + (self.diameter/2)
+            middle_y = self.y + (self.diameter/2)
+
+            if(n != self):
+                #2nd ball middle coords
+                middle_nx = n.x + (n.diameter/2)
+                middle_ny = n.y + (n.diameter/2)
+
+                centers_distance = sqrt(((middle_x-middle_nx)*(middle_x-middle_nx))+((middle_ny-middle_y)*(middle_ny-middle_y)))
+
+                if(centers_distance <= self.diameter):
+                    # print('tukli sa')
+                    distance_x = abs(middle_nx-middle_x)
+                    distance_y = abs(middle_x-middle_y)
+                    if (distance_x <= distance_y):
+                        intersecting = True
+
+                        if ((self.yspeed > 0 and self.y < n.y) or (self.yspeed < 0 and self.y > n.y)):
+                            self.yspeed = -self.yspeed
+
+
+                        if ((n.yspeed > 0 and n.y < self.y) or (n.yspeed < 0 and n.y > self.y)):
+                            n.yspeed = -n.yspeed
+
+
+
+                    elif (distance_x > distance_y):
+                        if ((self.xspeed > 0 and self.x < n.x) or (self.xspeed < 0 and self.x > n.x)):
+                            self.xspeed = -self.xspeed
+
+                        if ((n.xspeed > 0 and n.x < self.x) or (n.xspeed < 0 and n.x > self.x)):
                             n.xspeed = -n.xspeed
             return intersecting
 
@@ -181,6 +250,38 @@ class Human(object):
                         else:
                             canvas.move(self.id_,(25-distance_x)*-1,0)
 
+                self.x,self.y,_,_ = canvas.coords(self.id_)
+
+                if(centers_distance <= self.diameter+R):
+                    intersecting = True
+                return intersecting
+
+    def social_distancing2(self,R,n,canvas,distance):
+        if(self.motion and n.motion and self.in_quarantine == False):
+            intersecting = False
+            #1st ball middle coords
+            middle_x = self.x + (self.diameter/2)
+            middle_y = self.y + (self.diameter/2)
+            if(n != self):
+                #2nd ball middle coords
+                middle_nx = n.x + (n.diameter/2)
+                middle_ny = n.y + (n.diameter/2)
+
+                centers_distance = sqrt(((middle_x-middle_nx)*(middle_x-middle_nx))+((middle_ny-middle_y)*(middle_ny-middle_y)))
+                if(centers_distance <= self.diameter+distance):
+                    distance_x = abs(middle_nx-middle_x)
+                    distance_y = abs(middle_x-middle_y)
+                    if(distance_x > distance_y):
+                        if(middle_y > middle_ny):
+                            self.move_self(canvas,0,self.diameter+distance-distance_y)
+                        else:
+                            self.move_self(canvas,0,(self.diameter+distance-distance_y)*-1)
+                    else:
+                        if(middle_x > middle_nx):
+                            self.move_self(canvas,self.diameter+distance-distance_x,0)
+                        else:
+                            self.move_self(canvas,(self.diameter+distance-distance_x)*-1,0)
+
                 if(centers_distance <= self.diameter+R):
                     intersecting = True
                 return intersecting
@@ -191,21 +292,24 @@ class Human(object):
                 num = random.randint(0,100)
                 
                 if(num <= self.prob_to_quar*100):
-                    self.last_x,self.last_y,_,_ = canvas.coords(self.id_)
-                    canvas.coords(self.id_,625+325/2,250+370/2,625+325/2+self.diameter,250+370/2+self.diameter)
+                    self.last_x,self.last_y = self.x,self.y
+                    #canvas.coords(self.id_,625+325/2,250+370/2,625+325/2+self.diameter,250+370/2+self.diameter)
+                    self.move_self(canvas,625+325/2-self.x,250+370/2-self.y)
                     self.in_quarantine = True
         else:
             if(not self.in_quarantine and self.color == "red"):
                 num = random.randint(0,100)
                 
                 if(num <= self.prob_to_quar*100):
-                    self.last_x,self.last_y,_,_ = canvas.coords(self.id_)
-                    canvas.coords(self.id_,625+325/2,250+370/2,625+325/2+self.diameter,250+370/2+self.diameter)
+                    self.last_x,self.last_y = self.x,self.y
+                    #canvas.coords(self.id_,625+325/2,250+370/2,625+325/2+self.diameter,250+370/2+self.diameter)
+                    self.move_self(canvas,625+325/2-self.x,250+370/2-self.y)
                     self.in_quarantine = True
 
     def move_from_quarantine(self,canvas):
         if(self.in_quarantine and self.color == "green"):
             num = random.randint(0,100)
             if(num <= self.prob_from_quar*100):
-                canvas.coords(self.id_,self.last_x,self.last_y,self.last_x+self.diameter,self.last_y+self.diameter)
+                #canvas.coords(self.id_,self.last_x,self.last_y,self.last_x+self.diameter,self.last_y+self.diameter)
+                self.move_self(canvas,self.last_x-self.x,self.last_y-self.y)
                 self.in_quarantine = False
