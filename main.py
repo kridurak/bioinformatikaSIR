@@ -1,6 +1,7 @@
 from window import Screen
 from settings import *
 from tkinter import *
+from tkinter import ttk
 import tkinter as tk
 from math import *
 import numpy, keyboard, time
@@ -45,10 +46,22 @@ infected_id=0
 screen = Screen(WINDOW_WIDTH,WINDOW_HEIGTH)
 screen = screen.screen
 
-left_frame = Frame(screen)
+notebook = ttk.Notebook(screen)
+
+tab1 = Frame(notebook)
+tab2 = Frame(notebook)
+
+notebook.add(tab1, text='Tab 1')
+notebook.add(tab2, text='Tab 2')
+
+notebook.pack(expand = 1, fill="both")
+
+tabs = notebook.winfo_children()
+
+left_frame = Frame(tab1)
 left_frame.pack(side=LEFT)
 
-right_frame = Frame(screen)
+right_frame = Frame(tab1)
 right_frame.pack(side=RIGHT)
 
 canvas = Canvas(left_frame, width=1000,height=WINDOW_HEIGTH)
@@ -189,11 +202,13 @@ def spawn_people(n,diameter):
             people.append(human)
 # testovanie vsetkych ludi okrem karanteny
 def test_everyone():
-    for p in people:
-        if(p.color == "red" and p.in_quarantine == False):
+    sample_size = round((len(people)/100)*60)
+    sample_of_people = random.sample(people,sample_size)
+    for p in sample_of_people:
+        if((p.color == "red" or p.color == "yellow") and p.in_quarantine == False):
             p.prob_to_quar = 1
             p.prob_from_quar = 0
-            p.move_to_quarantine(canvas)
+            p.move_to_quarantine(canvas,testing = True)
 #testovanie ludi v karantene
 def test_people_in_quarantine():
     for p in people:
@@ -209,9 +224,9 @@ def number_of_people_in_quarantine():
     return number
 
 spawn_people(n=n_people,diameter=diameter)
-print(len(people))
-for p in people:
-    print('id',p.id_,'speed:',p.xspeed,',',p.yspeed)
+# print(len(people))
+# for p in people:
+#     print('id',p.id_,'speed:',p.xspeed,',',p.yspeed)
 
 ########## MENU ########## 
 
@@ -291,6 +306,7 @@ canvas.create_window(950,640,window = quarantine_button)
 ####### END OF MENU ###### 
 
 while 1:
+    #print(notebook.index(notebook.select()))
     if(loop):
         social_distancing = chcek_button1_status.get()
         area_slider = widget_slider.get()
@@ -338,7 +354,7 @@ while 1:
             if(not p.motion):
                 n_people_in_area += 1
             canvas.itemconfig(p.id_,fill=p.color)
-            if(canvas.itemcget(p.id_, "fill") == "red"):
+            if(p.color == "red" or p.color == "yellow"):
                 p.setOneMoreDay()
                 p.recover(200)
 
@@ -365,19 +381,30 @@ while 1:
                         intersecting_aoe = p.social_distancing(area_slider,n,canvas,distance_slider)
                     else:
                         intersecting = p.people_intersect(n,canvas)
+                    #nakaza
                     if(intersecting or intersecting_aoe):
                         if(intersecting):
                             p.prob_of_infection = 100
                         else:
                             p.prob_of_infection = probability_slider
-                        if(n.color =="red" or p.color == "red"):
+                        if(n.color =="red" or p.color == "red" or n.color == "yellow" or p.color == "yellow"):
                             if(not (n.color == "green" or p.color == "green")):
                                 random_number = numpy.random.randint(0,100)
                                 if(p.motion == False):
                                     p.prob_of_infection += 20
                                 if(random_number <= p.prob_of_infection):
-                                    p.color = "red"
-                                    n.color = "red"
+                                    random_number = numpy.random.randint(0,100)
+                                    if(p.color == "blue"):
+                                        if(random_number <= 70):
+                                            p.color = "red"
+                                        else:
+                                            p.color = "yellow"
+                                    if(n.color == "blue"):
+                                        if(random_number <= 70):
+                                            n.color = "red"
+                                        else:
+                                            n.color = "yellow"
+                                        
         widget_label.configure(text='Number of people in central area: {}'.format(n_people_in_area))
         widget_label5.configure(text='Probability of infection (%): {}'.format(probability_slider)) 
         widget_label4.configure(text='Number of people in quarantine: {}'.format(number_of_people_in_quarantine())) 

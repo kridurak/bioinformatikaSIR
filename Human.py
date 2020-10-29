@@ -180,14 +180,23 @@ class Human(object):
                     intersecting = True
                 return intersecting
 
-    def move_to_quarantine(self,canvas):
-        if(not self.in_quarantine and self.color == "red"):
-            num = random.randint(0,100)
-            
-            if(num <= self.prob_to_quar*100):
-                self.last_x,self.last_y,_,_ = canvas.coords(self.id_)
-                canvas.coords(self.id_,625+325/2,250+370/2,625+325/2+self.diameter,250+370/2+self.diameter)
-                self.in_quarantine = True
+    def move_to_quarantine(self,canvas,testing=False):
+        if(testing):
+            if(not self.in_quarantine and (self.color == "red" or self.color == "yellow")):
+                num = random.randint(0,100)
+                
+                if(num <= self.prob_to_quar*100):
+                    self.last_x,self.last_y,_,_ = canvas.coords(self.id_)
+                    canvas.coords(self.id_,625+325/2,250+370/2,625+325/2+self.diameter,250+370/2+self.diameter)
+                    self.in_quarantine = True
+        else:
+            if(not self.in_quarantine and self.color == "red"):
+                num = random.randint(0,100)
+                
+                if(num <= self.prob_to_quar*100):
+                    self.last_x,self.last_y,_,_ = canvas.coords(self.id_)
+                    canvas.coords(self.id_,625+325/2,250+370/2,625+325/2+self.diameter,250+370/2+self.diameter)
+                    self.in_quarantine = True
 
     def move_from_quarantine(self,canvas):
         if(self.in_quarantine and self.color == "green"):
