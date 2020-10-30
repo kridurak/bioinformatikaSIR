@@ -2,7 +2,7 @@ import random
 from math import *
 
 class Human(object):
-    def __init__(self,diameter,start_x,start_y,day_of_infection,id_, x , y,color,motion,days_no_motion,last_x,last_y):
+    def __init__(self,diameter,start_x,start_y,day_of_infection,id_, x , y,color,motion,days_no_motion,last_x,last_y,tab,window):
         self.color = color
         self.id_ = id_
         self.start_x = start_x
@@ -21,6 +21,8 @@ class Human(object):
         self.prob_from_quar = 0
         self.prob_of_infection = 0
         self.diameter = diameter
+        self.tab = tab
+        self.window = window
 
     def setPosition(self,x,y):
         self.x = x
@@ -34,10 +36,6 @@ class Human(object):
 
     def getPosition(self):
         return self.x, self.y
-    
-    def setPosition(self,x,y):
-        self.x = x
-        self.y = y
     
     def setOneMoreDay(self):
         self.day_of_infection += 1
@@ -294,7 +292,10 @@ class Human(object):
                 if(num <= self.prob_to_quar*100):
                     self.last_x,self.last_y = self.x,self.y
                     #canvas.coords(self.id_,625+325/2,250+370/2,625+325/2+self.diameter,250+370/2+self.diameter)
-                    self.move_self(canvas,625+325/2-self.x,250+370/2-self.y)
+                    if(self.tab == 1):
+                        self.move_self(canvas,625+325/2-self.x,250+370/2-self.y)
+                    elif(self.tab == 2):
+                        self.move_self(canvas,805+195-self.x,429+190/2-self.y)
                     self.in_quarantine = True
         else:
             if(not self.in_quarantine and self.color == "red"):

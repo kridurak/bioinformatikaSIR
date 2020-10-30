@@ -8,8 +8,14 @@ intersecting = False
 xs = []
 ys = []
 
+xs2 = []
+ys2 = []
+
 xsus = []
 xrec = []
+
+xsus2 = []
+xrec2 = []
 
 n_people = 30
 probability = 0
@@ -30,7 +36,9 @@ diameter = 10
 number_X = 102
 number_Y = 84
 
-timer = 0
+timer_tab1 = 0
+timer_tab2 = 0
+
 loop = False
 infected_id=0
 
