@@ -595,16 +595,16 @@ while 1:
                         p.motion = True
                         last_x, last_y = p.getLastPosition()
                         p.days_no_motion = 0
-                        p.move_self(canvas,last_x-p.x,last_y-p.y)
+                        p.move_self(canvas2,last_x-p.x,last_y-p.y)
                     for n in people:
                         if(n.tab == 2):
                             if(p.in_quarantine == False and n.in_quarantine == False):
                                 if(social_distancing):
                                     distance_slider = widget_slider3.get()
                                     # intersecting_aoe = p.social_distancing(area_slider,n,canvas,distance_slider)
-                                    intersecting_aoe = p.social_distancing2(area_slider,n,canvas,distance_slider)
+                                    intersecting_aoe = p.social_distancing2(area_slider,n,canvas2,distance_slider)
                                 else:
-                                    intersecting = p.people_intersect2(n,canvas)
+                                    intersecting = p.people_intersect2(n,canvas2)
                                 #nakaza
                                 if(intersecting or intersecting_aoe):
                                     if(intersecting):
