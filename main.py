@@ -374,7 +374,7 @@ canvas2.create_window(680, 670, window=widget_slider6)
 widget_slider7 = Scale(canvas2, from_= 0, to = 10, orient=HORIZONTAL)
 widget_slider7.set(1)
 widget_slider7.pack()
-canvas2.create_window(125, 640, window=widget_slider7)
+canvas2.create_window(850, 670, window=widget_slider7)
 
 # WIDGET_LABELS
 
@@ -397,6 +397,10 @@ canvas2.create_window(350, 640, window=widget_label11)
 widget_label12 = Label(canvas2, text='Social distancing size:')
 widget_label12.pack()
 canvas2.create_window(566, 677, window=widget_label12)
+
+widget_label13 = Label(canvas2, text='Turists:')
+widget_label13.pack()
+canvas2.create_window(780, 677, window=widget_label13)
 
 # CHECK_BUTTONS
 chcek_button2_status = IntVar()
@@ -554,7 +558,11 @@ while 1:
                     random_human = numpy.random.randint(people[0].id_,people[len(people)-1].id_)
                     for p in people:
                         if(p.id_ == random_human and p.tab == 2):
+                            random_window = numpy.random.randint(0,8)
+                            window = bounds_x_main2[random_window]
+                            p.move_self(canvas2,window[0]-125,window[1]-95)
                             done = True
+                            p.window = random_window
                             break
                 
 

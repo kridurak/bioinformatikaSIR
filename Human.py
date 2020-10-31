@@ -295,7 +295,7 @@ class Human(object):
                     if(self.tab == 1):
                         self.move_self(canvas,625+325/2-self.x,250+370/2-self.y)
                     elif(self.tab == 2):
-                        self.move_self(canvas,805+195-self.x,429+190/2-self.y)
+                        self.move_self(canvas,805+195/2-self.x,429+190/2-self.y)
                     self.in_quarantine = True
         else:
             if(not self.in_quarantine and self.color == "red"):
