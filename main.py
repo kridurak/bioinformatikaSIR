@@ -291,9 +291,6 @@ for i in range(0,9):
     bounds_y = bounds_y_main2[i]
     spawn_people(n=10,diameter=diameter,num_tab=2,min_x=bounds_x[0], min_y=bounds_y[0], max_x=bounds_x[1], max_y = bounds_y[1],window=i)
 
-for p in people:
-    print("id: ",p.id_,", tab: ",p.tab,", window: ",p.window)
-
 # print(len(people))
 # for p in people:
 #     print('id',p.id_,'speed:',p.xspeed,',',p.yspeed)
