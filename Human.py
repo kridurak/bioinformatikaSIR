@@ -23,6 +23,8 @@ class Human(object):
         self.diameter = diameter
         self.tab = tab
         self.window = window
+        self.prob_of_pos_test = 0
+        self.rules_apply = True
 
     def setPosition(self,x,y):
         self.x = x
@@ -213,7 +215,7 @@ class Human(object):
             return intersecting
 
     def social_distancing(self,R,n,canvas,distance):
-        if(self.motion and n.motion and self.in_quarantine == False):
+        if(self.motion and n.motion and self.in_quarantine == False and self.rules_apply):
             intersecting = False
             x1,y1,x2,y2 = canvas.coords(self.id_)
             x1=int(x1)
@@ -254,8 +256,11 @@ class Human(object):
                     intersecting = True
                 return intersecting
 
+        if(not self.rules_apply):
+            return self.people_intersect(n,canvas)
+
     def social_distancing2(self,R,n,canvas,distance):
-        if(self.motion and n.motion and self.in_quarantine == False):
+        if(self.motion and n.motion and self.in_quarantine == False and self.rules_apply):
             intersecting = False
             #1st ball middle coords
             middle_x = self.x + (self.diameter/2)
