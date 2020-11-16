@@ -10,7 +10,6 @@ import matplotlib.animation as animation
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from Human import *
 
-
 ##############SETTINGS###################
 WINDOW_WIDTH = 1550
 WINDOW_HEIGTH = 720
@@ -19,7 +18,12 @@ WINDOW_HEIGTH = 720
 Settings_Tab1 = {'social_distancing' : False,
 'quarantine' : False,
 'n_people' : 0,
-'n_areas' : 0}
+'n_areas' : 0,
+'central' : False,
+'max_speed' : 0,
+'prob_of_infection' : 0.0,
+'size_of_infection_area' : 0
+}
 
 bounds_x_dict = { 1:[[20,620]],
                 2:[[25,315],[325,615]],
@@ -42,7 +46,6 @@ bounds_y_dict = { 1:[[20,620]],
                 8:[[20,213],[20,213],[20,213],[223.5,416.5],[223.5,416.5],[223.5,416.5],[427,620],[427,620]],
                 9:[[20,213],[20,213],[20,213],[223.5,416.5],[223.5,416.5],[223.5,416.5],[427,620],[427,620],[427,620]]
 }
-
 
 bxq = [630, 830]
 byq = [420, 620]
@@ -113,7 +116,7 @@ bounds_y_quar2 = [429,619]
 rules_sample2 = 0
 ppl_without_rules2 = []
 
-
+####################################### SETTINGS ################################################
 SCREEN = Screen('settings',500,500)
 screen = SCREEN.screen
 
@@ -159,7 +162,7 @@ generate_btn.place(relx = 0.45, rely = 0.9)
 while(SCREEN.name == 'settings'):
     screen.update()
   
-
+#########################################################################################################
 def generate_areas(cnv,n_areas,bx,by,quar,bxq,byq):
     #calculate width and height of one rectangle
     b_x = bx[n_areas]
