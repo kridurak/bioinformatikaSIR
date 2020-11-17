@@ -25,6 +25,7 @@ class Human(object):
         self.window = window
         self.prob_of_pos_test = 0
         self.rules_apply = True
+        self.last_prob = 0
 
     def setPosition(self,x,y):
         self.x = x
@@ -63,6 +64,33 @@ class Human(object):
 
         canvas.move(self.id_,xspeed,yspeed)
     
+    def in_infectious_area(self,R,n,canvas):
+        if(self.motion and n.motion and self.in_quarantine == False):
+            intersecting = False
+            x1,y1,x2,y2 = canvas.coords(self.id_)
+            x1=int(x1)
+            x2=int(x2)
+            y1=int(y1)
+            y2=int(y2)
+            #1st ball middle coords
+            middle_x = x1 + (self.diameter/2)
+            middle_y = y1 + (self.diameter/2)
+            if(n != self):
+                nx1,ny1,nx2,ny2 = canvas.coords(n.id_)
+                nx1=int(nx1)
+                nx2=int(nx2)
+                ny1=int(ny1)
+                ny2=int(ny2)
+                #2nd ball middle coords
+                middle_nx = nx1 + (n.diameter/2)
+                middle_ny = ny1 + (n.diameter/2)
+
+                centers_distance = sqrt(((middle_x-middle_nx)*(middle_x-middle_nx))+((middle_ny-middle_y)*(middle_ny-middle_y)))
+
+                if(centers_distance <= self.diameter+R):
+                    intersecting = True
+        return intersecting
+
     def border_intersect(self,bounds_x,bounds_y,canvas):
         x1,y1,x2,y2 = canvas.coords(self.id_)
         x1=int(x1)
