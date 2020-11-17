@@ -15,7 +15,7 @@ WINDOW_WIDTH = 1550
 WINDOW_HEIGTH = 720
 
 #####-------TAB 1--------########
-Settings_Tab1 = {'social_distancing' : False,
+Settings_Tab3 = {'social_distancing' : False,
 'quarantine' : False,
 'n_people' : 0,
 'n_areas' : 0,
@@ -132,17 +132,17 @@ settings_window = Frame(screen)
 settings_window.pack()
 
 def create_world():
-    Settings_Tab1['n_people'] = int(TXT_BOX.get())
-    Settings_Tab1['social_distancing'] = bool(CHCK_BTN2_STATUS.get())
-    Settings_Tab1['quarantine'] = bool(CHCK_BTN1_STATUS.get())
-    Settings_Tab1['n_areas'] = int(TXT_BOX2.get())
-    Settings_Tab1['central'] = False
-    Settings_Tab1['max_speed'] = int(SLIDER_SPEED.get())
-    Settings_Tab1['prob_of_infection'] = int(SLIDER_POF.get())
-    Settings_Tab1['size_of_infection_area'] = int(SLIDER_AREA.get())
-    if(Settings_Tab1['n_areas'] > 1):
-        Settings_Tab1['mobility'] = bool(CHCK_BTN3_STATUS.get())
-    Settings_Tab1['rules_sample'] = int(SLIDER_SAMPLE.get())
+    Settings_Tab3['n_people'] = int(TXT_BOX.get())
+    Settings_Tab3['social_distancing'] = bool(CHCK_BTN2_STATUS.get())
+    Settings_Tab3['quarantine'] = bool(CHCK_BTN1_STATUS.get())
+    Settings_Tab3['n_areas'] = int(TXT_BOX2.get())
+    Settings_Tab3['central'] = False
+    Settings_Tab3['max_speed'] = int(SLIDER_SPEED.get())
+    Settings_Tab3['prob_of_infection'] = int(SLIDER_POF.get())
+    Settings_Tab3['size_of_infection_area'] = int(SLIDER_AREA.get())
+    if(Settings_Tab3['n_areas'] > 1):
+        Settings_Tab3['mobility'] = bool(CHCK_BTN3_STATUS.get())
+    Settings_Tab3['rules_sample'] = int(SLIDER_SAMPLE.get())
     settings_window.destroy()
     screen.geometry(str(WINDOW_WIDTH)+"x"+str(WINDOW_HEIGTH))
     SCREEN.name = 'main'
@@ -247,13 +247,13 @@ if(SCREEN.name != 'settings'):
     cnvq = Canvas(right_frame_tab3,width=650,height=200)
     cnvq.pack(side=BOTTOM)
 
-    generate_areas(canvas3,Settings_Tab1['n_areas'],bounds_x_dict,bounds_y_dict,Settings_Tab1['quarantine'],bxq,byq)
+    generate_areas(canvas3,Settings_Tab3['n_areas'],bounds_x_dict,bounds_y_dict,Settings_Tab3['quarantine'],bxq,byq)
 
     fig3 = plt.Figure(figsize=(8,5), dpi=100)
     ax3 = fig3.add_subplot(111)
     ax3.set_title('SIR model')
     ax3.set_xlim(0,1)
-    ax3.set_ylim(0,Settings_Tab1['n_people']+5)
+    ax3.set_ylim(0,Settings_Tab3['n_people']+5)
 
     ax3.plot(ys, xs, label='N_Infected', color = 'red')
     ax3.plot(ys,xsus, label='N_Susceptible', color = 'blue')
@@ -591,37 +591,37 @@ if(SCREEN.name != 'settings'):
             p.prob_of_infection += pof
             p.last_prob = p.prob_of_infection
 
-    spawn_people(n=n_people,diameter=diameter,num_tab=1, min_x = bounds_x_main[0], min_y = bounds_y_main[0], max_x = bounds_x_main[1]-2, max_y = bounds_y_main[1],window=1,max_speed=Settings_Tab1['max_speed'])
+    spawn_people(n=n_people,diameter=diameter,num_tab=1, min_x = bounds_x_main[0], min_y = bounds_y_main[0], max_x = bounds_x_main[1]-2, max_y = bounds_y_main[1],window=1,max_speed=Settings_Tab3['max_speed'])
 
     for i in range(0,9):
         bounds_x = bounds_x_main2[i]
         bounds_y = bounds_y_main2[i]
-        spawn_people(n=10,diameter=diameter,num_tab=2,min_x=bounds_x[0], min_y=bounds_y[0], max_x=bounds_x[1], max_y = bounds_y[1],window=i,max_speed=Settings_Tab1['max_speed'])
+        spawn_people(n=10,diameter=diameter,num_tab=2,min_x=bounds_x[0], min_y=bounds_y[0], max_x=bounds_x[1], max_y = bounds_y[1],window=i,max_speed=Settings_Tab3['max_speed'])
 
 
     ##TAB 3 ###
-    bx = bounds_x_dict[Settings_Tab1['n_areas']]
-    by = bounds_y_dict[Settings_Tab1['n_areas']]
+    bx = bounds_x_dict[Settings_Tab3['n_areas']]
+    by = bounds_y_dict[Settings_Tab3['n_areas']]
     n_ppl_area = 0
-    mod = Settings_Tab1['n_people'] % Settings_Tab1['n_areas']
+    mod = Settings_Tab3['n_people'] % Settings_Tab3['n_areas']
     if(mod == 0):
-        n_ppl_area = Settings_Tab1['n_people']/Settings_Tab1['n_areas']
+        n_ppl_area = Settings_Tab3['n_people']/Settings_Tab3['n_areas']
     else:
-        n_ppl_area = (Settings_Tab1['n_people']-mod)/Settings_Tab1['n_areas']
+        n_ppl_area = (Settings_Tab3['n_people']-mod)/Settings_Tab3['n_areas']
         for i in range(mod):
-            p = random.randint(0,Settings_Tab1['n_areas']-1)
+            p = random.randint(0,Settings_Tab3['n_areas']-1)
             bounds_x = bx[p]
             bounds_y = by[p]
-            spawn_people(n=1,diameter=diameter,num_tab=3,min_x=bounds_x[0], min_y=bounds_y[0], max_x=bounds_x[1], max_y = bounds_y[1],window=p,max_speed=Settings_Tab1['max_speed'])
+            spawn_people(n=1,diameter=diameter,num_tab=3,min_x=bounds_x[0], min_y=bounds_y[0], max_x=bounds_x[1], max_y = bounds_y[1],window=p,max_speed=Settings_Tab3['max_speed'])
 
     
-    for i in range(0,Settings_Tab1['n_areas']):
+    for i in range(0,Settings_Tab3['n_areas']):
         bounds_x = bx[i]
         bounds_y = by[i]
-        spawn_people(n=int(n_ppl_area),diameter=diameter,num_tab=3,min_x=bounds_x[0], min_y=bounds_y[0], max_x=bounds_x[1], max_y = bounds_y[1],window=i,max_speed=Settings_Tab1['max_speed'])
+        spawn_people(n=int(n_ppl_area),diameter=diameter,num_tab=3,min_x=bounds_x[0], min_y=bounds_y[0], max_x=bounds_x[1], max_y = bounds_y[1],window=i,max_speed=Settings_Tab3['max_speed'])
 
 
-    configure_people(people3,Settings_Tab1['rules_sample'],Settings_Tab1['prob_of_infection'])
+    configure_people(people3,Settings_Tab3['rules_sample'],Settings_Tab3['prob_of_infection'])
 ####################
 
 
@@ -787,7 +787,7 @@ if(SCREEN.name != 'settings'):
     print(len(people),len(people2))
 
     while 1:
-        #print('Settings:\nN_PPL:{}\nQuar:{}\nSD:{}\nAreas:{}'.format(Settings_Tab1['n_people'],Settings_Tab1['quarantine'],Settings_Tab1['social_distancing'],Settings_Tab1['n_areas']))
+        #print('Settings:\nN_PPL:{}\nQuar:{}\nSD:{}\nAreas:{}'.format(Settings_Tab3['n_people'],Settings_Tab3['quarantine'],Settings_Tab3['social_distancing'],Settings_Tab3['n_areas']))
         tabID=notebook.index(notebook.select())
         # choice one human, who will be infectioned
         if(timer_tab1 == 10):
@@ -1054,13 +1054,13 @@ if(SCREEN.name != 'settings'):
             if(loop):
                 timer_tab3 += 1
                 
-                if(Settings_Tab1['mobility']):
+                if(Settings_Tab3['mobility']):
                     done = False
                     while(done == False):
                         random_human = numpy.random.randint(people3[0].id_,people3[len(people3)-1].id_)
                         for p in people3:
                             if(p.id_ == random_human and p.tab == 3):
-                                random_window = random.randint(0,Settings_Tab1['n_areas']-1)
+                                random_window = random.randint(0,Settings_Tab3['n_areas']-1)
                                 if(p.window != random_window):
                                     window_x = bx[random_window]
                                     window_y = by[random_window]
@@ -1074,7 +1074,7 @@ if(SCREEN.name != 'settings'):
                     
                 for p in people3:
                     if(p.tab == 3):
-                        if(Settings_Tab1['quarantine']):
+                        if(Settings_Tab3['quarantine']):
                             if(p.color == "red"):
                                 p.prob_to_quar = 0.01
                                 p.prob_from_quar = 0
@@ -1084,7 +1084,7 @@ if(SCREEN.name != 'settings'):
                                 p.prob_from_quar = 0.1
                                 p.move_from_quarantine(canvas3)
 
-                        if(p.in_quarantine and Settings_Tab1['quarantine']):
+                        if(p.in_quarantine and Settings_Tab3['quarantine']):
                             bounds_x = bxq
                             bounds_y = byq
                         else:
@@ -1110,17 +1110,17 @@ if(SCREEN.name != 'settings'):
                         for n in people3:
                             if(n.tab == 3):
                                 if(p.in_quarantine == False and n.in_quarantine == False):
-                                    if(Settings_Tab1['social_distancing']):
+                                    if(Settings_Tab3['social_distancing']):
                                         #TODODODODODODODODOD#
                                         distance_slider = widget_slider3.get()
                                         #################################
-                                        intersecting_aoe = p.social_distancing(Settings_Tab1['size_of_infection_area'],n,canvas3,distance_slider)
+                                        intersecting_aoe = p.social_distancing(Settings_Tab3['size_of_infection_area'],n,canvas3,distance_slider)
                                         #intersecting_aoe = p.social_distancing2(area_slider,n,canvas2,distance_slider)
                                     else:
                                         #intersecting = p.people_intersect2(n,canvas2)
                                         intersecting = p.people_intersect(n,canvas3)
                                     
-                                    infectious_area = p.in_infectious_area(Settings_Tab1['size_of_infection_area'],n,canvas3)
+                                    infectious_area = p.in_infectious_area(Settings_Tab3['size_of_infection_area'],n,canvas3)
                                     #nakaza
                                     if(intersecting or intersecting_aoe or infectious_area and (p.window == n.window)):
                                         if(intersecting):
@@ -1149,10 +1149,10 @@ if(SCREEN.name != 'settings'):
                                                 
                 num_infected = number_of_infected(people3,3)
                 num_recovered = number_of_recovered(people3,3)
-                num_sus = Settings_Tab1['n_people'] - num_infected - num_recovered
+                num_sus = Settings_Tab3['n_people'] - num_infected - num_recovered
                 #print("infected: ",num_infected,", time:", timer_tab1)
                 if(timer_tab3 % 2 == 0):
-                    animate3(num_infected,timer_tab3,num_sus,num_recovered,Settings_Tab1['n_people'])
+                    animate3(num_infected,timer_tab3,num_sus,num_recovered,Settings_Tab3['n_people'])
             # print('som na tabe2')
 
 
