@@ -1122,7 +1122,7 @@ if(SCREEN.name != 'settings'):
                                     
                                     infectious_area = p.in_infectious_area(Settings_Tab1['size_of_infection_area'],n,canvas3)
                                     #nakaza
-                                    if(intersecting or intersecting_aoe or infectious_area):
+                                    if(intersecting or intersecting_aoe or infectious_area and (p.window == n.window)):
                                         if(intersecting):
                                             p.last_prob = p.prob_of_infection
                                             p.prob_of_infection = 100
