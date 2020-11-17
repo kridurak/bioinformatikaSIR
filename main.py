@@ -51,7 +51,7 @@ bounds_y_dict = { 1:[[20,620]],
 }
 
 bxq = [630, 830]
-byq = [420, 620]
+byq = [160, 360]
 
 
 social_distancing = True
@@ -1197,10 +1197,7 @@ if(SCREEN.name != 'settings'):
                             if(n.tab == 3):
                                 if(p.in_quarantine == False and n.in_quarantine == False):
                                     if(Settings_Tab3['social_distancing']):
-                                        #TODODODODODODODODOD#
-                                        distance_slider = widget_slider3.get()
-                                        #################################
-                                        intersecting_aoe = p.social_distancing(Settings_Tab3['size_of_infection_area'],n,canvas3,distance_slider)
+                                        intersecting_aoe = p.social_distancing(Settings_Tab3['size_of_infection_area'],n,canvas3,widget_slider9.get())
                                         #intersecting_aoe = p.social_distancing2(area_slider,n,canvas2,distance_slider)
                                     else:
                                         #intersecting = p.people_intersect2(n,canvas2)
