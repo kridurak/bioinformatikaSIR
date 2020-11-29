@@ -2,6 +2,7 @@ from window import Screen
 from tkinter import *
 from tkinter import ttk
 import tkinter as tk
+import tkinter.filedialog as tkFileDialog
 from math import *
 import numpy, keyboard, time
 import matplotlib.pyplot as plt
@@ -9,6 +10,11 @@ import datetime as dt
 import matplotlib.animation as animation
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from Human import *
+import os,sys
+from dicttoxml import *
+from xml.etree import ElementTree
+from copy import copy
+from distutils import util
 
 ##############SETTINGS###################
 WINDOW_WIDTH = 1550
@@ -100,28 +106,15 @@ diameter = 10
 rules_sample = 0
 ppl_without_rules = []
 
-
 number_X = 102
 number_Y = 84
 
-timer_tab1 = 0
-timer_tab2 = 0
 timer_tab3 = 0
 
 loop = False
-infected_id=0
+run = True
 
 ##############################################
-
-#######-----TAB2-----#######
-bounds_x_main2 = [[25,275],[287,537],[549,799],[25,275],[287,537],[549,799],[25,275],[287,537],[549,799]]
-bounds_y_main2 = [[25,215],[25,215],[25,215],[227,417],[227,417],[227,417],[429,619],[429,619],[429,619]]
-
-bounds_x_quar2 = [805,1000]
-bounds_y_quar2 = [429,619]
-
-rules_sample2 = 0
-ppl_without_rules2 = []
 
 ####################################### SETTINGS ################################################
 SCREEN = Screen('settings',500,800)
@@ -135,7 +128,7 @@ def create_world():
     Settings_Tab3['social_distancing'] = bool(CHCK_BTN2_STATUS.get())
     Settings_Tab3['quarantine'] = bool(CHCK_BTN1_STATUS.get())
     Settings_Tab3['n_areas'] = int(TXT_BOX2.get())
-    Settings_Tab3['central'] = False
+    Settings_Tab3['central'] = bool(CHCK_BTN4_STATUS.get())
     Settings_Tab3['max_speed'] = int(SLIDER_SPEED.get())
     Settings_Tab3['prob_of_infection'] = int(SLIDER_POF.get())
     Settings_Tab3['size_of_infection_area'] = int(SLIDER_AREA.get())
@@ -145,6 +138,51 @@ def create_world():
     settings_window.destroy()
     screen.geometry(str(WINDOW_WIDTH)+"x"+str(WINDOW_HEIGTH))
     SCREEN.name = 'main'
+
+def dictify(r,root=True):
+    if root:
+        return {r.tag : dictify(r, False)}
+    d=copy(r.attrib)
+    if r.text:
+        d["_text"]=r.text
+    for x in r.findall("./*"):
+        if x.tag not in d:
+            d[x.tag]=[]
+        d[x.tag].append(dictify(x,False))
+    return d
+
+def load_settings():
+    ftypes = [('XML FILES','*.xml'), ('All files', '*')]
+    dlg = tkFileDialog.Open(filetypes = ftypes)
+    fl = dlg.show()
+    if(fl != ''):
+        print(fl)
+    else:
+        print("ERROR LOADING FILE")
+        return
+    file = open(fl)
+    if(file is None):
+        return
+    xml_string = file.read()  
+
+    tree = ElementTree.fromstring(xml_string)
+
+    dictified_tree = dictify(tree)
+    Settings_Tab3['social_distancing'] = bool(util.strtobool(dictified_tree['root']['social_distancing'][0]['_text']))
+    Settings_Tab3['quarantine'] = bool(util.strtobool(dictified_tree['root']['quarantine'][0]['_text']))
+    Settings_Tab3['n_people'] = int(dictified_tree['root']['n_people'][0]['_text'])
+    Settings_Tab3['n_areas'] = int(dictified_tree['root']['n_areas'][0]['_text'])
+    Settings_Tab3['central'] = bool(util.strtobool(dictified_tree['root']['central'][0]['_text']))
+    Settings_Tab3['max_speed'] = int(dictified_tree['root']['max_speed'][0]['_text'])
+    Settings_Tab3['prob_of_infection'] = int(dictified_tree['root']['prob_of_infection'][0]['_text'])
+    Settings_Tab3['size_of_infection_area'] = int(dictified_tree['root']['size_of_infection_area'][0]['_text'])
+    Settings_Tab3['rules_sample'] = int(dictified_tree['root']['rules_sample'][0]['_text'])
+    Settings_Tab3['mobility'] = bool(util.strtobool(dictified_tree['root']['mobility'][0]['_text']))
+
+    settings_window.destroy()
+    screen.geometry(str(WINDOW_WIDTH)+"x"+str(WINDOW_HEIGTH))
+    SCREEN.name = 'main'
+
 
 settings_canvas = Canvas(settings_window,width=500,height=800)
 settings_canvas.pack()
@@ -202,27 +240,37 @@ SLIDER_SAMPLE = Scale(settings_canvas,from_= 0, to = 100, orient=HORIZONTAL)
 SLIDER_SAMPLE.set(20)
 SLIDER_SAMPLE.place(relx = 0, rely = 0.58)
 
+CHCK_BTN4_STATUS = IntVar()
+CHCK_BTN4 = Checkbutton(settings_canvas, text='Central Areas', variable=CHCK_BTN4_STATUS)
+CHCK_BTN4.place(relx = 0, rely = 0.65)
+
 
 generate_btn = Button(settings_canvas,text = "GENERATE", command = create_world)
-generate_btn.place(relx = 0.45, rely = 0.95)
+generate_btn.place(relx = 0.3, rely = 0.95)
+
+load_btn = Button(settings_canvas,text = "LOAD SETTINGS", command = load_settings)
+load_btn.place(relx = 0.5, rely = 0.95)
 
 while(SCREEN.name == 'settings'):
     screen.update()
   
 #########################################################################################################
-def generate_areas(cnv,n_areas,bx,by,quar,bxq,byq):
+def generate_areas(cnv,n_areas,bx,by,quar,bxq,byq,central):
     #calculate width and height of one rectangle
     b_x = bx[n_areas]
     b_y = by[n_areas]
     for i in range(len(b_x)):
         bounds_x = b_x[i]
         bounds_y = b_y[i]
+        if(central):
+            cnv.create_rectangle(((bounds_x[0]+bounds_x[1])/2)-9,((bounds_y[0]+bounds_y[1])/2)-9,((bounds_x[0]+bounds_x[1])/2)+9,((bounds_y[0]+bounds_y[1])/2)+9)
         cnv.create_rectangle(bounds_x[0],bounds_y[0],bounds_x[1],bounds_y[1])
     if(quar):
         cnv.create_rectangle(bxq[0],byq[0],bxq[1],byq[1])
 
 
 if(SCREEN.name != 'settings'):
+    
     notebook = ttk.Notebook(screen)
 
     tab3 = Frame(notebook)
@@ -242,7 +290,7 @@ if(SCREEN.name != 'settings'):
     cnvq = Canvas(right_frame_tab3,width=650,height=200)
     cnvq.pack(side=BOTTOM)
 
-    generate_areas(canvas3,Settings_Tab3['n_areas'],bounds_x_dict,bounds_y_dict,Settings_Tab3['quarantine'],bxq,byq)
+    generate_areas(canvas3,Settings_Tab3['n_areas'],bounds_x_dict,bounds_y_dict,Settings_Tab3['quarantine'],bxq,byq,Settings_Tab3['central'])
 
     fig3 = plt.Figure(figsize=(8,5), dpi=100)
     ax3 = fig3.add_subplot(111)
@@ -280,6 +328,7 @@ if(SCREEN.name != 'settings'):
         ax3.legend()
         
         graph3.draw()
+    
     #pocet nakazenych
     def number_of_infected(people,num_tab):
         infected = 0
@@ -288,7 +337,7 @@ if(SCREEN.name != 'settings'):
                 if(p.color == "red" or p.color == "yellow"):
                     infected += 1
         return infected
-
+    
     #pocet vyliecenych
     def number_of_recovered(people,num_tab):
         recovered = 0
@@ -298,50 +347,7 @@ if(SCREEN.name != 'settings'):
                     recovered += 1
         return recovered
 
-    #ak sa gulicka stretne s vonkajsou hranou oblasti v strede
-    def border_of_area_intersect(p,bounds_x_main,bounds_y_main,canvas):
-        if(p.motion == True):
-            x1,y1,x2,y2 = canvas.coords(p.id_)
-            x1=int(x1)
-            x2=int(x2)
-            y1=int(y1)
-            y2=int(y2)
-            #1st move to borded then reverse the xspeed and yspeed and move again from the border
-
-            middle_x = x1+diameter/2
-            middle_y = y1+diameter/2
-
-            testX = middle_x
-            testY = middle_y
-            if(middle_x < bounds_x_main[0]):
-                testX = bounds_x_main[0]
-            elif(middle_x > bounds_x_main[1]):
-                testX = bounds_x_main[1]
-            if(middle_y < bounds_y_main[0]):
-                testY = bounds_y_main[0]
-            elif(middle_y > bounds_y_main[1]):
-                testY = bounds_y_main[1]
-
-            distance_x = middle_x - testX
-            distance_y = middle_y - testY
-            distance = sqrt((distance_x*distance_x)+(distance_y*distance_y))
-
-            if(distance <= diameter/2):
-                if(testX == bounds_x_main[0]):
-                    canvas.move(p.id_,bounds_x_main[0]-x2,p.yspeed)
-                    p.xspeed *= -1
-                elif(testX == bounds_x_main[1]):
-                    canvas.move(p.id_,bounds_x_main[1]-x1,p.yspeed)
-                    p.xspeed *= -1
-
-                if(testY == bounds_y_main[0]):
-                    canvas.move(p.id_,p.xspeed,bounds_y_main[0]-y2)
-                    p.yspeed *= -1
-                elif(testY == bounds_y_main[1]):
-                    canvas.move(p.id_,p.xspeed,bounds_y_main[1]-y1)
-                    p.yspeed *= -1
-
-    #pridaj ludi na canvas
+    #pridaj ludi na canvas - funkcia
     def spawn_people(n,diameter,num_tab,min_x,min_y,max_x,max_y,window,max_speed):
         forbidden_spawn_coords = [[300,300,345,345]]
         forbidden_spawn_coords2 = []
@@ -441,13 +447,44 @@ if(SCREEN.name != 'settings'):
             p.prob_of_infection += pof
             p.last_prob = p.prob_of_infection
 
+    def sp_simulation():
+        global loop
+        if(loop):
+            loop=False
+        else:
+            loop=True
+
+    def close_simulation():
+        global run
+        run = False
+        sys.exit()
+
+    def save_settings():
+        path = os.path.join(os.path.dirname(os.path.abspath(__file__)),'Settings')
+        if not os.path.exists(path):
+            os.makedirs(path)
+        print(Settings_Tab3)
+        xml = dicttoxml(Settings_Tab3)
+        f = tkFileDialog.asksaveasfile(mode="w",defaultextension=".xml")
+        if(f is None):
+            print("file is none")
+            return
+        f.write(xml.decode("utf8"))
+        f.close()
+        #print(xml.decode("utf8"))
+        
+    def save_sim():
+        f = tkFileDialog.asksaveasfile(mode="w",defaultextension=".png")
+        if(f is None):
+            print("file is none")
+            return
+        print(f.name)
+        f.close()
+        fig3.savefig(f.name)
+
+
+    #pridanie ludi - prepocet medzi oblastami
     spawn_people(n=n_people,diameter=diameter,num_tab=1, min_x = bounds_x_main[0], min_y = bounds_y_main[0], max_x = bounds_x_main[1]-2, max_y = bounds_y_main[1],window=1,max_speed=Settings_Tab3['max_speed'])
-
-    for i in range(0,9):
-        bounds_x = bounds_x_main2[i]
-        bounds_y = bounds_y_main2[i]
-        spawn_people(n=10,diameter=diameter,num_tab=2,min_x=bounds_x[0], min_y=bounds_y[0], max_x=bounds_x[1], max_y = bounds_y[1],window=i,max_speed=Settings_Tab3['max_speed'])
-
 
     ##TAB 3 ###
     bx = bounds_x_dict[Settings_Tab3['n_areas']]
@@ -463,17 +500,14 @@ if(SCREEN.name != 'settings'):
             bounds_x = bx[p]
             bounds_y = by[p]
             spawn_people(n=1,diameter=diameter,num_tab=3,min_x=bounds_x[0], min_y=bounds_y[0], max_x=bounds_x[1], max_y = bounds_y[1],window=p,max_speed=Settings_Tab3['max_speed'])
-
     
     for i in range(0,Settings_Tab3['n_areas']):
         bounds_x = bx[i]
         bounds_y = by[i]
         spawn_people(n=int(n_ppl_area),diameter=diameter,num_tab=3,min_x=bounds_x[0], min_y=bounds_y[0], max_x=bounds_x[1], max_y = bounds_y[1],window=i,max_speed=Settings_Tab3['max_speed'])
 
-
     configure_people(people3,Settings_Tab3['rules_sample'],Settings_Tab3['prob_of_infection'])
 ####################
-
 
     # print(len(people))
     # for p in people:
@@ -482,13 +516,12 @@ if(SCREEN.name != 'settings'):
     ########## MENU ########## 
 
     ######################################### Canvas 3 #######################################
-
-    # WIDGET_LABELS
     
     widget_label16 = Label(canvas3, text='Settings')
     widget_label16.pack()
     canvas3.create_window(720, 30, window=widget_label16)
 
+    # Vytvori ovladacie prvky na zaklade poziadaviek, ktore su nastavene na zaciatku
     if(Settings_Tab3['quarantine'] == True and Settings_Tab3['social_distancing'] == True):
         # WIDGET_SLIDER
     
@@ -538,7 +571,6 @@ if(SCREEN.name != 'settings'):
 
         quarantine_button3 = Button(canvas3,text = "Quarantine", command = test_people_in_quarantine3)
         canvas3.create_window(720,105,window = quarantine_button3)
-
     elif(Settings_Tab3['quarantine'] == False and Settings_Tab3['social_distancing'] == True):
         
         widget_label13 = Label(canvas3, text='Social distancing size:')
@@ -550,14 +582,21 @@ if(SCREEN.name != 'settings'):
         widget_slider9.pack()
         canvas3.create_window(800, 60, window=widget_slider9)
 
+    start_button = Button(canvas3,text = "START/PAUSE", command = sp_simulation)
+    canvas3.create_window(680,160,window = start_button)
 
+    exit_button = Button(canvas3,text = "CLOSE", command = close_simulation)
+    canvas3.create_window(680,190,window = exit_button)
+
+    save_settings_btn = Button(canvas3,text="SAVE SETTINGS",command = save_settings)
+    canvas3.create_window(680,230,window=save_settings_btn)
+
+    save_simulation = Button(canvas3,text="SAVE SIMULATION GRAPH",command = save_sim)
+    canvas3.create_window(680,260,window=save_simulation)
     ####### END OF MENU ######
-
     tabID = notebook.index(notebook.select())
 
-    print(len(people),len(people2))
-
-    while 1:
+    while run:
         #print('Settings:\nN_PPL:{}\nQuar:{}\nSD:{}\nAreas:{}'.format(Settings_Tab3['n_people'],Settings_Tab3['quarantine'],Settings_Tab3['social_distancing'],Settings_Tab3['n_areas']))
         tabID=notebook.index(notebook.select())
         # choice one human, who will be infectioned
@@ -667,7 +706,9 @@ if(SCREEN.name != 'settings'):
             #print("infected: ",num_infected,", time:", timer_tab1)
             if(timer_tab3 % 2 == 0):
                 animate3(num_infected,timer_tab3,num_sus,num_recovered,Settings_Tab3['n_people'])
-
+        
+        
+        '''
         if keyboard.is_pressed('q'):
             if(loop == True):
                 loop = False
@@ -676,5 +717,6 @@ if(SCREEN.name != 'settings'):
         if keyboard.is_pressed('e'):
             break
 
+        '''
         time.sleep(0)
         screen.update()
