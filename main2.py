@@ -15,6 +15,13 @@ from dicttoxml import *
 from xml.etree import ElementTree
 from copy import copy
 from distutils import util
+from reportlab.pdfgen.canvas import Canvas as PDFCanvas
+from reportlab.lib.pagesizes import *
+from reportlab.lib.units import *
+from reportlab.graphics import renderPDF
+from io import BytesIO
+from svglib.svglib import svg2rlg
+
 
 ##############SETTINGS###################
 WINDOW_WIDTH = 1550
@@ -56,7 +63,7 @@ bounds_y_dict = { 1:[[20,620]],
 }
 
 bxq = [630, 830]
-byq = [160, 360]
+byq = [280, 480]
 
 
 social_distancing = True
@@ -110,7 +117,9 @@ number_X = 102
 number_Y = 84
 
 timer_tab3 = 0
+question_timer = 0
 
+asked_to_save = False
 loop = False
 run = True
 
@@ -482,10 +491,63 @@ if(SCREEN.name != 'settings'):
         f.close()
         fig3.savefig(f.name)
 
+    
+    def save_whole_simulation(name):
+        path = os.path.join(os.path.dirname(os.path.abspath(__file__)),'Testing',name)
+        #first XML
+        xml_path = path+".xml"
+        xml = dicttoxml(Settings_Tab3)
+        f = open(xml_path,"w")
+        if(f is None):
+            print("file is none")
+            return
+        f.write(xml.decode("utf8"))
+        f.close()
+        #png
+        png_path = path+".png"
+        fig3.savefig(png_path)
+
+        #pdf
+        pdf_path = path+".pdf"
+        pdf_canvas = PDFCanvas(pdf_path,pagesize=LETTER)
+
+        settings_string = ["SETTINGS USED:",
+        "• Social distancing : {}".format(Settings_Tab3['social_distancing']),
+        "• Quarantine : {}".format(Settings_Tab3['quarantine']),
+        "• Number of people : {}".format(Settings_Tab3['n_people']),
+        "• Number of areas: {}".format(Settings_Tab3['n_areas']),
+        "• Central area : {}".format(Settings_Tab3['central']),
+        "• MAX_SPEED : {}".format(Settings_Tab3['max_speed']),
+        "• Probability of infection: {}".format(Settings_Tab3['prob_of_infection']),
+        "• Size of infectious area(around every individual): {}".format(Settings_Tab3['size_of_infection_area']),
+        "• How many people do not listen to rules(%): {}".format(Settings_Tab3['rules_sample']),
+        "• Mobility, travel between areas, only available if there are more than one area: {}".format(Settings_Tab3['mobility'])]
+        
+        x = 1*inch
+        y = 10*inch
+        pdf_canvas.setFont("Times-Roman", 20)
+        for idx,row in enumerate(settings_string):
+            if(idx == 1):
+                pdf_canvas.setFont("Times-Roman", 10)
+                x += 0.1*inch
+            pdf_canvas.drawString(x,y,row)            
+            y -= 0.2*inch
+        
+        imgdata = BytesIO()
+        temp_fig = fig3
+        temp_fig.set_size_inches(6,4)
+        temp_fig.savefig(imgdata,format="svg")
+        imgdata.seek(0)
+
+        image = svg2rlg(imgdata)
+
+        pdf_canvas.setFont("Times-Roman", 20)
+        pdf_canvas.drawString(x-0.1*inch,y-0.1*inch,"OUTPUT GRAPH:")
+        renderPDF.draw(image,pdf_canvas,x-0.9*inch,y-5.2*inch)
+        pdf_canvas.save()
+        #print(path,'\n',xml_path,'\n',png_path,'\n',pdf_path)
 
     #pridanie ludi - prepocet medzi oblastami
-    spawn_people(n=n_people,diameter=diameter,num_tab=1, min_x = bounds_x_main[0], min_y = bounds_y_main[0], max_x = bounds_x_main[1]-2, max_y = bounds_y_main[1],window=1,max_speed=Settings_Tab3['max_speed'])
-
     ##TAB 3 ###
     bx = bounds_x_dict[Settings_Tab3['n_areas']]
     by = bounds_y_dict[Settings_Tab3['n_areas']]
@@ -519,7 +581,8 @@ if(SCREEN.name != 'settings'):
     
     widget_label16 = Label(canvas3, text='Settings')
     widget_label16.pack()
-    canvas3.create_window(720, 30, window=widget_label16)
+    canvas3.create_window(720, 150, window=widget_label16)
+    #150
 
     # Vytvori ovladacie prvky na zaklade poziadaviek, ktore su nastavene na zaciatku
     if(Settings_Tab3['quarantine'] == True and Settings_Tab3['social_distancing'] == True):
@@ -528,71 +591,72 @@ if(SCREEN.name != 'settings'):
         widget_slider8 = Scale(canvas3,from_= 0, to = 100, orient=HORIZONTAL)
         widget_slider8.set(50)
         widget_slider8.pack()
-        canvas3.create_window(800, 60, window=widget_slider8)
-
+        canvas3.create_window(800, 180, window=widget_slider8)
+        #180,220
         widget_slider9 = Scale(canvas3,from_= 0, to = 20, orient=HORIZONTAL)
         widget_slider9.set(5)
         widget_slider9.pack()
-        canvas3.create_window(800, 100, window=widget_slider9)
+        canvas3.create_window(800, 220, window=widget_slider9)
         
         # WIDGET_LABELS
 
         widget_label13 = Label(canvas3, text='Social distancing size:')
         widget_label13.pack()
-        canvas3.create_window(685, 105, window=widget_label13)
-
+        canvas3.create_window(685, 225, window=widget_label13)
+        #225,185
         widget_label15 = Label(canvas3, text='Testing of people (%):')
         widget_label15.pack()
-        canvas3.create_window(685, 65, window=widget_label15)
+        canvas3.create_window(685, 185, window=widget_label15)
 
         # BUTTON
         testing_button3 = Button(canvas3,text = "Testing", command = test_everyone3)
-        canvas3.create_window(650,140,window = testing_button3)
-
+        canvas3.create_window(650,260,window = testing_button3)
+        #260,260
         quarantine_button3 = Button(canvas3,text = "Quarantine", command = test_people_in_quarantine3)
-        canvas3.create_window(720,140,window = quarantine_button3)
+        canvas3.create_window(720,260,window = quarantine_button3)
     elif(Settings_Tab3['quarantine'] == True and Settings_Tab3['social_distancing'] == False):
         # WIDGET_SLIDER
     
         widget_slider8 = Scale(canvas3,from_= 0, to = 100, orient=HORIZONTAL)
         widget_slider8.set(50)
         widget_slider8.pack()
-        canvas3.create_window(800, 60, window=widget_slider8)
-        
+        canvas3.create_window(800, 180, window=widget_slider8)
+        #180
         # WIDGET_LABELS
 
         widget_label15 = Label(canvas3, text='Testing of people (%):')
         widget_label15.pack()
-        canvas3.create_window(685, 65, window=widget_label15)
-
+        canvas3.create_window(685, 185, window=widget_label15)
+        #185
         # BUTTON
         testing_button3 = Button(canvas3,text = "Testing", command = test_everyone3)
-        canvas3.create_window(650,105,window = testing_button3)
-
+        canvas3.create_window(650,225,window = testing_button3)
+        #225,225
         quarantine_button3 = Button(canvas3,text = "Quarantine", command = test_people_in_quarantine3)
-        canvas3.create_window(720,105,window = quarantine_button3)
+        canvas3.create_window(720,225,window = quarantine_button3)
     elif(Settings_Tab3['quarantine'] == False and Settings_Tab3['social_distancing'] == True):
         
         widget_label13 = Label(canvas3, text='Social distancing size:')
         widget_label13.pack()
-        canvas3.create_window(685, 65, window=widget_label13)
-
+        canvas3.create_window(685, 185, window=widget_label13)
+        #185,180
         widget_slider9 = Scale(canvas3,from_= 0, to = 20, orient=HORIZONTAL)
         widget_slider9.set(5)
         widget_slider9.pack()
-        canvas3.create_window(800, 60, window=widget_slider9)
-
+        canvas3.create_window(800, 180, window=widget_slider9)
+        
     start_button = Button(canvas3,text = "START/PAUSE", command = sp_simulation)
-    canvas3.create_window(680,160,window = start_button)
+    canvas3.create_window(720,30,window = start_button)
 
     exit_button = Button(canvas3,text = "CLOSE", command = close_simulation)
-    canvas3.create_window(680,190,window = exit_button)
+    canvas3.create_window(720,60,window = exit_button)
 
-    save_settings_btn = Button(canvas3,text="SAVE SETTINGS",command = save_settings)
-    canvas3.create_window(680,230,window=save_settings_btn)
+    save_settings_btn = Button(canvas3,text="EXPORT SETTINGS",command = save_settings)
+    canvas3.create_window(720,90,window=save_settings_btn)
 
     save_simulation = Button(canvas3,text="SAVE SIMULATION GRAPH",command = save_sim)
-    canvas3.create_window(680,260,window=save_simulation)
+    canvas3.create_window(720,120,window=save_simulation)
+    # 30,60,90,120
     ####### END OF MENU ######
     tabID = notebook.index(notebook.select())
 
@@ -628,6 +692,13 @@ if(SCREEN.name != 'settings'):
                                 p.window = random_window
                             break
                 
+
+            if(Settings_Tab3['central']):
+                rand_number = random.randint(0,100)
+                if(rand_number < 10):
+                    rand_number2 = random.randint(0,len(people3)-1)
+                    if(people3[rand_number2].in_quarantine == False):
+                        people3[rand_number2].move_to_center(canvas3,bx[people3[rand_number2].window],by[people3[rand_number2].window])
             for p in people3:
                 if(p.tab == 3):
                     if(Settings_Tab3['quarantine']):
@@ -659,10 +730,7 @@ if(SCREEN.name != 'settings'):
                         p.oneMoreDayNoMotion()
 
                     if(p.days_no_motion > 20):
-                        p.motion = True
-                        last_x, last_y = p.getLastPosition()
-                        p.days_no_motion = 0
-                        p.move_self(canvas3,last_x-p.x,last_y-p.y)
+                        p.move_from_center(canvas3)
                     for n in people3:
                         if(n.tab == 3):
                             if(p.in_quarantine == False and n.in_quarantine == False):
@@ -670,8 +738,10 @@ if(SCREEN.name != 'settings'):
                                     intersecting_aoe = p.social_distancing(Settings_Tab3['size_of_infection_area'],n,canvas3,widget_slider9.get())
                                     #intersecting_aoe = p.social_distancing2(area_slider,n,canvas2,distance_slider)
                                 else:
+                                    pass
                                     #intersecting = p.people_intersect2(n,canvas2)
-                                    intersecting = p.people_intersect(n,canvas3)
+                                    #intersecting = p.people_intersect(n,canvas3)
+                                    intersecting = p.people_intersecting(n,canvas3)
                                 
                                 infectious_area = p.in_infectious_area(Settings_Tab3['size_of_infection_area'],n,canvas3)
                                 #nakaza
@@ -685,7 +755,10 @@ if(SCREEN.name != 'settings'):
                                         if(not (n.color == "green" or p.color == "green")):
                                             random_number = numpy.random.randint(0,100)
                                             if(p.motion == False):
+                                                p.last_prob = p.prob_of_infection
                                                 p.prob_of_infection += 20
+                                            else:
+                                                p.prob_of_infection = p.last_prob
                                             if(random_number <= p.prob_of_infection):
                                                 random_number = numpy.random.randint(0,100)
                                                 if(p.color == "blue"):
@@ -706,6 +779,25 @@ if(SCREEN.name != 'settings'):
             #print("infected: ",num_infected,", time:", timer_tab1)
             if(timer_tab3 % 2 == 0):
                 animate3(num_infected,timer_tab3,num_sus,num_recovered,Settings_Tab3['n_people'])
+                if(timer_tab3 > 30 and num_infected == 0 and asked_to_save == False):
+                    question_timer += 1
+                    if(question_timer > 10):
+                        asked_to_save = True
+                        loop = False
+                        result = tk.messagebox.askyesno("Simulation ended", "Simulation has ended, do you wish to save the simulation output and settings? If no, you can still continue the simulation and save everything manually.")
+                        if(result):
+                            name = tk.simpledialog.askstring("","Enter name of simulation")
+                            save_whole_simulation(name)
+                            time.sleep(1)
+                            result2 = tk.messagebox.askyesno("","Close simulation?")
+                            if(result2):
+                                close_simulation()
+                            else:
+                                loop = True
+                        else:
+                            loop = True
+                        #result = True or False
+                        #TODO ZAVOLAT FUNKCIU NA ULOZENIE
         
         
         '''

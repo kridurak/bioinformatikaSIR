@@ -65,8 +65,8 @@ class Human(object):
         canvas.move(self.id_,xspeed,yspeed)
     
     def in_infectious_area(self,R,n,canvas):
+        intersecting = False
         if(self.motion and n.motion and self.in_quarantine == False):
-            intersecting = False
             x1,y1,x2,y2 = canvas.coords(self.id_)
             x1=int(x1)
             x2=int(x2)
@@ -202,6 +202,35 @@ class Human(object):
 
                         if ((n.xspeed > 0 and nx1 < x1) or (n.xspeed < 0 and nx1 > x1)):
                             n.xspeed = -n.xspeed
+            return intersecting
+
+    def people_intersecting(self,n,canvas):
+        if(self.motion and n.motion and self.in_quarantine == False):
+            intersecting = False
+            x1,y1,x2,y2 = canvas.coords(self.id_)
+            x1=int(x1)
+            x2=int(x2)
+            y1=int(y1)
+            y2=int(y2)
+            #1st ball middle coords
+            middle_x = x1 + (self.diameter/2)
+            middle_y = y1 + (self.diameter/2)
+
+            if(n != self):
+                nx1,ny1,nx2,ny2 = canvas.coords(n.id_)
+                nx1=int(nx1)
+                nx2=int(nx2)
+                ny1=int(ny1)
+                ny2=int(ny2)
+                #2nd ball middle coords
+                middle_nx = nx1 + (n.diameter/2)
+                middle_ny = ny1 + (n.diameter/2)
+
+                centers_distance = sqrt(((middle_x-middle_nx)*(middle_x-middle_nx))+((middle_ny-middle_y)*(middle_ny-middle_y)))
+
+                if(centers_distance <= self.diameter):
+                    # print('tukli sa')
+                    intersecting = True
             return intersecting
 
     def people_intersect2(self,n,canvas):
@@ -347,3 +376,18 @@ class Human(object):
                 #canvas.coords(self.id_,self.last_x,self.last_y,self.last_x+self.diameter,self.last_y+self.diameter)
                 self.move_self(canvas,self.last_x-self.x,self.last_y-self.y)
                 self.in_quarantine = False
+
+    def move_to_center(self,canvas,bounds_x,bounds_y):
+        bounds_x_central = [((bounds_x[0]+bounds_x[1])/2)-8,((bounds_x[0]+bounds_x[1])/2)+8]
+        bounds_y_central = [((bounds_y[0]+bounds_y[1])/2)-8,((bounds_y[0]+bounds_y[1])/2)+8]
+        self.motion = False
+        #x1,y1,_,_ = canvas.coords(people[rand_number].id_)
+        self.last_x = self.x
+        self.last_y = self.y
+        self.move_self(canvas,bounds_x_central[0]-self.x+(16-10)/2,bounds_y_central[0]-self.y+(16-10)/2)
+        #canvas.coords(people[rand_number].id_,315,315,315+diameter,315+diameter)
+    
+    def move_from_center(self,canvas):
+        self.motion = True
+        self.days_no_motion = 0
+        self.move_self(canvas,self.last_x-self.x,self.last_y-self.y)
