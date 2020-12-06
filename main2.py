@@ -37,7 +37,9 @@ Settings_Tab3 = {'social_distancing' : False,
 'prob_of_infection' : 0,
 'size_of_infection_area' : 0,
 'rules_sample' : 50,
-'mobility' : False
+'mobility' : False,
+'p_central' : 0,
+'p_mobility' : 0
 }
 
 bounds_x_dict = { 1:[[20,620]],
@@ -141,7 +143,9 @@ def create_world():
     Settings_Tab3['max_speed'] = int(SLIDER_SPEED.get())
     Settings_Tab3['prob_of_infection'] = int(SLIDER_POF.get())
     Settings_Tab3['size_of_infection_area'] = int(SLIDER_AREA.get())
+    Settings_Tab3['p_central'] = int(SLIDER_P_CENTRAL.get())
     if(Settings_Tab3['n_areas'] > 1):
+        Settings_Tab3['p_mobility'] = int(SLIDER_P_MOBILITY.get())
         Settings_Tab3['mobility'] = bool(CHCK_BTN3_STATUS.get())
     Settings_Tab3['rules_sample'] = int(SLIDER_SAMPLE.get())
     settings_window.destroy()
@@ -253,6 +257,20 @@ CHCK_BTN4_STATUS = IntVar()
 CHCK_BTN4 = Checkbutton(settings_canvas, text='Central Areas', variable=CHCK_BTN4_STATUS)
 CHCK_BTN4.place(relx = 0, rely = 0.65)
 
+LABEL7 = Label(settings_canvas, text='Probability of moving to central area(%)')
+LABEL7.place(relx = 0, rely = 0.7)
+
+SLIDER_P_CENTRAL = Scale(settings_canvas,from_= 0, to = 100, orient=HORIZONTAL)
+SLIDER_P_CENTRAL.set(20)
+SLIDER_P_CENTRAL.place(relx = 0, rely = 0.72)
+
+LABEL8 = Label(settings_canvas, text='Probability of moving to another area(%)')
+LABEL8.place(relx = 0, rely = 0.78)
+
+SLIDER_P_MOBILITY = Scale(settings_canvas,from_= 0, to = 100, orient=HORIZONTAL)
+SLIDER_P_MOBILITY.set(20)
+SLIDER_P_MOBILITY.place(relx = 0, rely = 0.8)
+
 
 generate_btn = Button(settings_canvas,text = "GENERATE", command = create_world)
 generate_btn.place(relx = 0.3, rely = 0.95)
@@ -284,7 +302,7 @@ if(SCREEN.name != 'settings'):
 
     tab3 = Frame(notebook)
 
-    notebook.add(tab3, text='Tab 3')
+    notebook.add(tab3, text='Simulation')
 
     notebook.pack(expand = 1, fill="both")
     
@@ -453,6 +471,8 @@ if(SCREEN.name != 'settings'):
                 ppl_without_rules.append(p)
 
         for p in ppl:
+            p.prob_mob = Settings_Tab3['p_mobility']
+            p.prob_central = Settings_Tab3['p_central']
             p.prob_of_infection += pof
             p.last_prob = p.prob_of_infection
 
@@ -472,7 +492,7 @@ if(SCREEN.name != 'settings'):
         path = os.path.join(os.path.dirname(os.path.abspath(__file__)),'Settings')
         if not os.path.exists(path):
             os.makedirs(path)
-        print(Settings_Tab3)
+        #print(Settings_Tab3)
         xml = dicttoxml(Settings_Tab3)
         f = tkFileDialog.asksaveasfile(mode="w",defaultextension=".xml")
         if(f is None):
@@ -520,8 +540,10 @@ if(SCREEN.name != 'settings'):
         "• MAX_SPEED : {}".format(Settings_Tab3['max_speed']),
         "• Probability of infection: {}".format(Settings_Tab3['prob_of_infection']),
         "• Size of infectious area(around every individual): {}".format(Settings_Tab3['size_of_infection_area']),
-        "• How many people do not listen to rules(%): {}".format(Settings_Tab3['rules_sample']),
-        "• Mobility, travel between areas, only available if there are more than one area: {}".format(Settings_Tab3['mobility'])]
+        "• Sample size of people that do not respect the rules(%): {}".format(Settings_Tab3['rules_sample']),
+        "• Mobility: {}".format(Settings_Tab3['mobility']),
+        "• Probability of traveling between areas: {}".format(Settings_Tab3['p_mobility']),
+        "• Probability of traveling to central area: {}".format(Settings_Tab3['p_central'])]
         
         x = 1*inch
         y = 10*inch
@@ -662,7 +684,7 @@ if(SCREEN.name != 'settings'):
 
     while run:
         #print('Settings:\nN_PPL:{}\nQuar:{}\nSD:{}\nAreas:{}'.format(Settings_Tab3['n_people'],Settings_Tab3['quarantine'],Settings_Tab3['social_distancing'],Settings_Tab3['n_areas']))
-        tabID=notebook.index(notebook.select())
+        #tabID=notebook.index(notebook.select())
         # choice one human, who will be infectioned
 
         if(timer_tab3 == 10):
@@ -673,33 +695,32 @@ if(SCREEN.name != 'settings'):
                     p.color = "red"            
         if(loop):
             timer_tab3 += 1
-            
-            if(Settings_Tab3['mobility']):
-                done = False
-                while(done == False):
-                    random_human = numpy.random.randint(people3[0].id_,people3[len(people3)-1].id_)
-                    for p in people3:
-                        if(p.id_ == random_human and p.tab == 3):
-                            random_window = random.randint(0,Settings_Tab3['n_areas']-1)
-                            if(p.window != random_window):
-                                window_x = bx[random_window]
-                                window_y = by[random_window]
-                                window_w = abs(window_x[0]-window_x[1])
-                                window_h = abs(window_y[0]-window_y[1])
-
-                                p.move_self(canvas3,(window_x[0]+window_w/2)-p.x,(window_y[0]+window_h/2)-p.y)
-                                done = True
-                                p.window = random_window
-                            break
                 
-
-            if(Settings_Tab3['central']):
-                rand_number = random.randint(0,100)
-                if(rand_number < 10):
-                    rand_number2 = random.randint(0,len(people3)-1)
-                    if(people3[rand_number2].in_quarantine == False):
-                        people3[rand_number2].move_to_center(canvas3,bx[people3[rand_number2].window],by[people3[rand_number2].window])
             for p in people3:
+                if(Settings_Tab3['mobility']):
+                    random_p_mob = random.randint(0,1000)
+                    #print(random_p_mob)
+                    if(random_p_mob <= p.prob_mob):
+                        random_window = random.randint(0,Settings_Tab3['n_areas']-1)
+                        while(random_window == p.window):
+                            random_window = random.randint(0,Settings_Tab3['n_areas']-1)
+                        window_x = bx[random_window]
+                        window_y = by[random_window]
+                        window_w = abs(window_x[0]-window_x[1])
+                        window_h = abs(window_y[0]-window_y[1])
+
+                        rand_x = random.randint(int(window_x[0])+10,int(window_x[1])-10)
+                        rand_y = random.randint(int(window_y[0])+10,int(window_y[1])-10)
+
+                        p.move_self(canvas3,rand_x-p.x,rand_y-p.y)
+                        p.window = random_window
+
+                if(Settings_Tab3['central']):
+                    rand_number = random.randint(0,1000)
+                    if(rand_number <= p.prob_central):
+                        if(p.in_quarantine == False):
+                            p.move_to_center(canvas3,bx[p.window],by[p.window])
+
                 if(p.tab == 3):
                     if(Settings_Tab3['quarantine']):
                         if(p.color == "red"):

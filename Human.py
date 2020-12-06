@@ -26,6 +26,8 @@ class Human(object):
         self.prob_of_pos_test = 0
         self.rules_apply = True
         self.last_prob = 0
+        self.prob_central = 0
+        self.prob_mob = 0
 
     def setPosition(self,x,y):
         self.x = x
