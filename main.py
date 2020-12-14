@@ -2,6 +2,7 @@ from window import Screen
 from tkinter import *
 from tkinter import ttk
 import tkinter as tk
+import tkinter.filedialog as tkFileDialog
 from math import *
 import numpy, keyboard, time
 import matplotlib.pyplot as plt
@@ -9,13 +10,24 @@ import datetime as dt
 import matplotlib.animation as animation
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from Human import *
+import os,sys
+from dicttoxml import *
+from xml.etree import ElementTree
+from copy import copy
+from distutils import util
+from reportlab.pdfgen.canvas import Canvas as PDFCanvas
+from reportlab.lib.pagesizes import *
+from reportlab.lib.units import *
+from reportlab.graphics import renderPDF
+from io import BytesIO
+from svglib.svglib import svg2rlg
+
 
 ##############SETTINGS###################
 WINDOW_WIDTH = 1550
 WINDOW_HEIGTH = 720
 
-#####-------TAB 1--------########
-Settings_Tab3 = {'social_distancing' : False,
+SETTINGS = {'social_distancing' : False,
 'quarantine' : False,
 'n_people' : 0,
 'n_areas' : 0,
@@ -24,9 +36,10 @@ Settings_Tab3 = {'social_distancing' : False,
 'prob_of_infection' : 0,
 'size_of_infection_area' : 0,
 'rules_sample' : 50,
-'mobility' : False
+'mobility' : False,
+'p_central' : 0,
+'p_mobility' : 0
 }
-
 
 bounds_x_dict = { 1:[[20,620]],
                 2:[[25,315],[325,615]],
@@ -51,98 +64,102 @@ bounds_y_dict = { 1:[[20,620]],
 }
 
 bxq = [630, 830]
-byq = [160, 360]
+byq = [280, 480]
 
-
-social_distancing = True
-quarantine = False
-
-n_areas = 0
 
 intersecting_aoe = False
 intersecting = False
-xs = []
-ys = []
-xs2 = []
-ys2 = []
+
 xs3 = []
 ys3 = []
 
-xsus = []
-xrec = []
-
-xsus2 = []
-xrec2 = []
 xsus3 = []
 xrec3 = []
 
-n_people = 60
-n_people2 = 90
-probability = 0
 
 num_infected = 0
 num_sus = 0
 num_recovered = 0
 
-bounds_x_main = [25, 550]
-bounds_y_main = [25, 550]
-
-bounds_x_quar = [560, 800]
-bounds_y_quar = [310, 550]
-
-bounds_x_central = [(bounds_x_main[1]-bounds_x_main[0])/2-8+bounds_x_main[0],(bounds_x_main[1]-bounds_x_main[0])/2+8+bounds_x_main[0]]
-bounds_y_central = [(bounds_y_main[1]-bounds_y_main[0])/2-8+bounds_y_main[0],(bounds_y_main[1]-bounds_y_main[0])/2+8+bounds_y_main[0]]
-
-people = []
-people2 = []
 people3 = []
 diameter = 10
 
-rules_sample = 0
-ppl_without_rules = []
-
-
-number_X = 102
-number_Y = 84
-
-timer_tab1 = 0
-timer_tab2 = 0
 timer_tab3 = 0
+question_timer = 0
 
+asked_to_save = False
 loop = False
-infected_id=0
+run = True
 
 ##############################################
 
-#######-----TAB2-----#######
-bounds_x_main2 = [[25,275],[287,537],[549,799],[25,275],[287,537],[549,799],[25,275],[287,537],[549,799]]
-bounds_y_main2 = [[25,215],[25,215],[25,215],[227,417],[227,417],[227,417],[429,619],[429,619],[429,619]]
-
-bounds_x_quar2 = [805,1000]
-bounds_y_quar2 = [429,619]
-
-rules_sample2 = 0
-ppl_without_rules2 = []
-
-####################################### SETTINGS ################################################
+####################################### SETTINGS WINDOW ################################################
 SCREEN = Screen('settings',500,800)
 screen = SCREEN.screen
 
 settings_window = Frame(screen)
 settings_window.pack()
-
+#read settings and save them to dict
 def create_world():
-    Settings_Tab3['n_people'] = int(TXT_BOX.get())
-    Settings_Tab3['social_distancing'] = bool(CHCK_BTN2_STATUS.get())
-    Settings_Tab3['quarantine'] = bool(CHCK_BTN1_STATUS.get())
-    Settings_Tab3['n_areas'] = int(TXT_BOX2.get())
-    Settings_Tab3['central'] = False
-    Settings_Tab3['max_speed'] = int(SLIDER_SPEED.get())
-    Settings_Tab3['prob_of_infection'] = int(SLIDER_POF.get())
-    Settings_Tab3['size_of_infection_area'] = int(SLIDER_AREA.get())
-    if(Settings_Tab3['n_areas'] > 1):
-        Settings_Tab3['mobility'] = bool(CHCK_BTN3_STATUS.get())
-    Settings_Tab3['rules_sample'] = int(SLIDER_SAMPLE.get())
+    SETTINGS['n_people'] = int(TXT_BOX.get())
+    SETTINGS['social_distancing'] = bool(CHCK_BTN2_STATUS.get())
+    SETTINGS['quarantine'] = bool(CHCK_BTN1_STATUS.get())
+    SETTINGS['n_areas'] = int(TXT_BOX2.get())
+    SETTINGS['central'] = bool(CHCK_BTN4_STATUS.get())
+    SETTINGS['max_speed'] = int(SLIDER_SPEED.get())
+    SETTINGS['prob_of_infection'] = int(SLIDER_POF.get())
+    SETTINGS['size_of_infection_area'] = int(SLIDER_AREA.get())
+    SETTINGS['p_central'] = int(SLIDER_P_CENTRAL.get())
+    if(SETTINGS['n_areas'] > 1):
+        SETTINGS['p_mobility'] = int(SLIDER_P_MOBILITY.get())
+        SETTINGS['mobility'] = bool(CHCK_BTN3_STATUS.get())
+    SETTINGS['rules_sample'] = int(SLIDER_SAMPLE.get())
+    settings_window.destroy()
+    screen.geometry(str(WINDOW_WIDTH)+"x"+str(WINDOW_HEIGTH))
+    SCREEN.name = 'main'
+
+#help func
+def dictify(r,root=True):
+    if root:
+        return {r.tag : dictify(r, False)}
+    d=copy(r.attrib)
+    if r.text:
+        d["_text"]=r.text
+    for x in r.findall("./*"):
+        if x.tag not in d:
+            d[x.tag]=[]
+        d[x.tag].append(dictify(x,False))
+    return d
+
+#load settings from xml
+def load_settings():
+    ftypes = [('XML FILES','*.xml'), ('All files', '*')]
+    dlg = tkFileDialog.Open(filetypes = ftypes)
+    fl = dlg.show()
+    if(fl != ''):
+        print(fl)
+    else:
+        print("ERROR LOADING FILE")
+        return
+    file = open(fl)
+    if(file is None):
+        return
+    xml_string = file.read()  
+
+    tree = ElementTree.fromstring(xml_string)
+
+    dictified_tree = dictify(tree)
+    SETTINGS['social_distancing'] = bool(util.strtobool(dictified_tree['root']['social_distancing'][0]['_text']))
+    SETTINGS['quarantine'] = bool(util.strtobool(dictified_tree['root']['quarantine'][0]['_text']))
+    SETTINGS['n_people'] = int(dictified_tree['root']['n_people'][0]['_text'])
+    SETTINGS['n_areas'] = int(dictified_tree['root']['n_areas'][0]['_text'])
+    SETTINGS['central'] = bool(util.strtobool(dictified_tree['root']['central'][0]['_text']))
+    SETTINGS['max_speed'] = int(dictified_tree['root']['max_speed'][0]['_text'])
+    SETTINGS['prob_of_infection'] = int(dictified_tree['root']['prob_of_infection'][0]['_text'])
+    SETTINGS['size_of_infection_area'] = int(dictified_tree['root']['size_of_infection_area'][0]['_text'])
+    SETTINGS['rules_sample'] = int(dictified_tree['root']['rules_sample'][0]['_text'])
+    SETTINGS['mobility'] = bool(util.strtobool(dictified_tree['root']['mobility'][0]['_text']))
+
     settings_window.destroy()
     screen.geometry(str(WINDOW_WIDTH)+"x"+str(WINDOW_HEIGTH))
     SCREEN.name = 'main'
@@ -203,36 +220,57 @@ SLIDER_SAMPLE = Scale(settings_canvas,from_= 0, to = 100, orient=HORIZONTAL)
 SLIDER_SAMPLE.set(20)
 SLIDER_SAMPLE.place(relx = 0, rely = 0.58)
 
+CHCK_BTN4_STATUS = IntVar()
+CHCK_BTN4 = Checkbutton(settings_canvas, text='Central Areas', variable=CHCK_BTN4_STATUS)
+CHCK_BTN4.place(relx = 0, rely = 0.65)
+
+LABEL7 = Label(settings_canvas, text='Probability of moving to central area(%)')
+LABEL7.place(relx = 0, rely = 0.7)
+
+SLIDER_P_CENTRAL = Scale(settings_canvas,from_= 0, to = 100, orient=HORIZONTAL)
+SLIDER_P_CENTRAL.set(20)
+SLIDER_P_CENTRAL.place(relx = 0, rely = 0.72)
+
+LABEL8 = Label(settings_canvas, text='Probability of moving to another area(%)')
+LABEL8.place(relx = 0, rely = 0.78)
+
+SLIDER_P_MOBILITY = Scale(settings_canvas,from_= 0, to = 100, orient=HORIZONTAL)
+SLIDER_P_MOBILITY.set(20)
+SLIDER_P_MOBILITY.place(relx = 0, rely = 0.8)
+
 
 generate_btn = Button(settings_canvas,text = "GENERATE", command = create_world)
-generate_btn.place(relx = 0.45, rely = 0.95)
+generate_btn.place(relx = 0.3, rely = 0.95)
+
+load_btn = Button(settings_canvas,text = "LOAD SETTINGS", command = load_settings)
+load_btn.place(relx = 0.5, rely = 0.95)
 
 while(SCREEN.name == 'settings'):
     screen.update()
   
 #########################################################################################################
-def generate_areas(cnv,n_areas,bx,by,quar,bxq,byq):
-    #calculate width and height of one rectangle
+
+#Funciton to draw areas on canvas
+def generate_areas(cnv,n_areas,bx,by,quar,bxq,byq,central):
     b_x = bx[n_areas]
     b_y = by[n_areas]
     for i in range(len(b_x)):
         bounds_x = b_x[i]
         bounds_y = b_y[i]
+        if(central):
+            cnv.create_rectangle(((bounds_x[0]+bounds_x[1])/2)-9,((bounds_y[0]+bounds_y[1])/2)-9,((bounds_x[0]+bounds_x[1])/2)+9,((bounds_y[0]+bounds_y[1])/2)+9)
         cnv.create_rectangle(bounds_x[0],bounds_y[0],bounds_x[1],bounds_y[1])
     if(quar):
         cnv.create_rectangle(bxq[0],byq[0],bxq[1],byq[1])
 
 
 if(SCREEN.name != 'settings'):
+    
     notebook = ttk.Notebook(screen)
 
-    tab1 = Frame(notebook)
-    tab2 = Frame(notebook)
     tab3 = Frame(notebook)
 
-    notebook.add(tab1, text='Tab 1')
-    notebook.add(tab2, text='Tab 2')
-    notebook.add(tab3, text='Tab 3')
+    notebook.add(tab3, text='Simulation')
 
     notebook.pack(expand = 1, fill="both")
     
@@ -247,123 +285,25 @@ if(SCREEN.name != 'settings'):
     cnvq = Canvas(right_frame_tab3,width=650,height=200)
     cnvq.pack(side=BOTTOM)
 
-    generate_areas(canvas3,Settings_Tab3['n_areas'],bounds_x_dict,bounds_y_dict,Settings_Tab3['quarantine'],bxq,byq)
-
+#call func generate_areas
+    generate_areas(canvas3,SETTINGS['n_areas'],bounds_x_dict,bounds_y_dict,SETTINGS['quarantine'],bxq,byq,SETTINGS['central'])
+#initialize figure for showing SIR model
     fig3 = plt.Figure(figsize=(8,5), dpi=100)
     ax3 = fig3.add_subplot(111)
     ax3.set_title('SIR model')
     ax3.set_xlim(0,1)
-    ax3.set_ylim(0,Settings_Tab3['n_people']+5)
+    ax3.set_ylim(0,SETTINGS['n_people']+5)
 
-    ax3.plot(ys, xs, label='N_Infected', color = 'red')
-    ax3.plot(ys,xsus, label='N_Susceptible', color = 'blue')
-    ax3.plot(ys,xrec, label='N_Recovered', color = 'green')
+    ax3.plot(ys3, xs3, label='N_Infected', color = 'red')
+    ax3.plot(ys3,xsus3, label='N_Susceptible', color = 'blue')
+    ax3.plot(ys3,xrec3, label='N_Recovered', color = 'green')
 
     ax3.legend()
     graph3 = FigureCanvasTkAgg(fig3,master=right_frame_tab3)
     graph3.get_tk_widget().pack(side="top",fill='both',expand=False)
     #cnvq.create_window(0,0,window=graph3)
 
-    left_frame_tab1 = Frame(tab1)
-    left_frame_tab1.pack(side=LEFT)
-
-    right_frame_tab1 = Frame(tab1)
-    right_frame_tab1.pack(side=RIGHT)
-
-    left_frame_tab2 = Frame(tab2)
-    left_frame_tab2.pack(side=LEFT)
-
-    right_frame_tab2 = Frame(tab2)
-    right_frame_tab2.pack(side=RIGHT)
-
-    canvas = Canvas(left_frame_tab1, width=1000,height=WINDOW_HEIGTH)
-    canvas.pack( side = LEFT)
-
-    canvas2 = Canvas(left_frame_tab2, width = 1000, height = WINDOW_HEIGTH)
-    canvas2.pack( side = LEFT)
-
-    for i in range(0,9):
-        bounds_x = bounds_x_main2[i]
-        bounds_y = bounds_y_main2[i]
-        canvas2.create_rectangle(bounds_x[0],bounds_y[0],bounds_x[1],bounds_y[1])
-
-    canvas2.create_rectangle(bounds_x_quar2[0],bounds_y_quar2[0],bounds_x_quar2[1],bounds_y_quar2[1])
-
-    canvas.create_rectangle(bounds_x_main[0],bounds_y_main[0],bounds_x_main[1],bounds_y_main[1])
-    canvas.create_rectangle(bounds_x_central[0],bounds_y_central[0],bounds_x_central[1],bounds_y_central[1])
-    canvas.create_rectangle(bounds_x_quar[0],bounds_y_quar[0],bounds_x_quar[1],bounds_y_quar[1])
-
-    fig = plt.Figure(figsize=(8,5), dpi=100)
-    ax = fig.add_subplot(111)
-    ax.set_title('SIR model')
-    ax.set_xlim(0,1)
-    ax.set_ylim(0,n_people+5)
-
-    ax.plot(ys, xs, label='N_Infected', color = 'red')
-    ax.plot(ys,xsus, label='N_Susceptible', color = 'blue')
-    ax.plot(ys,xrec, label='N_Recovered', color = 'green')
-
-    ax.legend()
-    graph = FigureCanvasTkAgg(fig,master=right_frame_tab1)
-    graph.get_tk_widget().pack(side="top",fill='both',expand=False)
-
-    fig2 = plt.Figure(figsize=(8,5), dpi=100)
-    ax2 = fig2.add_subplot(111)
-    ax2.set_title('SIR model')
-    ax2.set_xlim(0,1)
-    ax2.set_ylim(0,95)
-
-    ax2.plot(ys2, xs2, label='N_Infected', color = 'red')
-    ax2.plot(ys2,xsus2, label='N_Susceptible', color = 'blue')
-    ax2.plot(ys2,xrec2, label='N_Recovered', color = 'green')
-
-    ax2.legend()
-    graph2 = FigureCanvasTkAgg(fig2,master=right_frame_tab2)
-    graph2.get_tk_widget().pack(side="top",fill='both',expand=False)
-
     #graf
-    def animate(infected, timer_tab1, susceptible,recovered, n_people):
-        # Add x and y to lists
-        xs.append(infected)
-        ys.append(timer_tab1)
-        xsus.append(susceptible)
-        xrec.append(recovered)
-
-        # Draw x and y lists
-        ax.clear()
-        ax.set_title('SIR model')
-        ax.set_xlim(0,timer_tab1)
-        ax.set_ylim(0,n_people+5)
-        
-        ax.plot(ys, xs, label='N_Infected', color = 'red')
-        ax.plot(ys,xsus, label='N_Susceptible', color = 'blue')
-        ax.plot(ys,xrec, label='N_Recovered', color = 'green')
-
-        ax.legend()
-        
-        graph.draw()
-
-    def animate2(infected, timer_tab2, susceptible,recovered, n_people):
-        # Add x and y to lists
-        xs2.append(infected)
-        ys2.append(timer_tab2)
-        xsus2.append(susceptible)
-        xrec2.append(recovered)
-
-        # Draw x and y lists
-        ax2.clear()
-        ax2.set_title('SIR model')
-        ax2.set_xlim(0,timer_tab2)
-        ax2.set_ylim(0,95)
-        
-        ax2.plot(ys2,xs2, label='N_Infected', color = 'red')
-        ax2.plot(ys2,xsus2, label='N_Susceptible', color = 'blue')
-        ax2.plot(ys2,xrec2, label='N_Recovered', color = 'green')
-
-        ax2.legend()
-        
-        graph2.draw()
-
     def animate3(infected, timer_tab3, susceptible,recovered, n_people):
         # Add x and y to lists
         xs3.append(infected)
@@ -384,7 +324,8 @@ if(SCREEN.name != 'settings'):
         ax3.legend()
         
         graph3.draw()
-    #pocet nakazenych
+    
+    #infected people
     def number_of_infected(people,num_tab):
         infected = 0
         for p in people:
@@ -392,8 +333,8 @@ if(SCREEN.name != 'settings'):
                 if(p.color == "red" or p.color == "yellow"):
                     infected += 1
         return infected
-
-    #pocet vyliecenych
+    
+    #recovered people
     def number_of_recovered(people,num_tab):
         recovered = 0
         for p in people:
@@ -402,50 +343,7 @@ if(SCREEN.name != 'settings'):
                     recovered += 1
         return recovered
 
-    #ak sa gulicka stretne s vonkajsou hranou oblasti v strede
-    def border_of_area_intersect(p,bounds_x_main,bounds_y_main,canvas):
-        if(p.motion == True):
-            x1,y1,x2,y2 = canvas.coords(p.id_)
-            x1=int(x1)
-            x2=int(x2)
-            y1=int(y1)
-            y2=int(y2)
-            #1st move to borded then reverse the xspeed and yspeed and move again from the border
-
-            middle_x = x1+diameter/2
-            middle_y = y1+diameter/2
-
-            testX = middle_x
-            testY = middle_y
-            if(middle_x < bounds_x_main[0]):
-                testX = bounds_x_main[0]
-            elif(middle_x > bounds_x_main[1]):
-                testX = bounds_x_main[1]
-            if(middle_y < bounds_y_main[0]):
-                testY = bounds_y_main[0]
-            elif(middle_y > bounds_y_main[1]):
-                testY = bounds_y_main[1]
-
-            distance_x = middle_x - testX
-            distance_y = middle_y - testY
-            distance = sqrt((distance_x*distance_x)+(distance_y*distance_y))
-
-            if(distance <= diameter/2):
-                if(testX == bounds_x_main[0]):
-                    canvas.move(p.id_,bounds_x_main[0]-x2,p.yspeed)
-                    p.xspeed *= -1
-                elif(testX == bounds_x_main[1]):
-                    canvas.move(p.id_,bounds_x_main[1]-x1,p.yspeed)
-                    p.xspeed *= -1
-
-                if(testY == bounds_y_main[0]):
-                    canvas.move(p.id_,p.xspeed,bounds_y_main[0]-y2)
-                    p.yspeed *= -1
-                elif(testY == bounds_y_main[1]):
-                    canvas.move(p.id_,p.xspeed,bounds_y_main[1]-y1)
-                    p.yspeed *= -1
-
-    #pridaj ludi na canvas
+    #spawn people and add them on canvas
     def spawn_people(n,diameter,num_tab,min_x,min_y,max_x,max_y,window,max_speed):
         forbidden_spawn_coords = [[300,300,345,345]]
         forbidden_spawn_coords2 = []
@@ -491,37 +389,7 @@ if(SCREEN.name != 'settings'):
                                 break
 
             if(passed):
-                if(num_tab == 1):
-                    forbidden_spawn_coords.append([start_x,start_y,start_x+diameter,start_y+diameter])
-
-                    ball = canvas.create_oval(start_x, start_y,start_x+diameter, start_y+diameter, outline="black",
-                                fill="blue", width=2)
-                    
-                    human = Human(diameter,start_x+diameter/2,start_y+diameter/2,0,ball,start_x,start_y,"blue",True,0,start_x,start_y,num_tab,window=window)
-                    human.prob_of_pos_test = random.randint(0,100)
-                    move_x,move_y = 0,0
-                    while(move_x == 0 and move_y == 0):
-                        move_x = numpy.random.randint(-max_speed,max_speed)
-                        move_y = numpy.random.randint(-max_speed,max_speed)
-                    human.xspeed = move_x
-                    human.yspeed = move_y
-                    people.append(human)
-                elif(num_tab == 2):
-                    forbidden_spawn_coords2.append([start_x,start_y,start_x+diameter,start_y+diameter])
-
-                    ball = canvas2.create_oval(start_x, start_y,start_x+diameter, start_y+diameter, outline="black",
-                                fill="blue", width=2)
-                    
-                    human = Human(diameter,start_x+diameter/2,start_y+diameter/2,0,ball,start_x,start_y,"blue",True,0,start_x,start_y,num_tab,window=window)
-                    human.prob_of_pos_test = random.randint(0,100)
-                    move_x,move_y = 0,0
-                    while(move_x == 0 and move_y == 0):
-                        move_x = numpy.random.randint(-max_speed,max_speed)
-                        move_y = numpy.random.randint(-max_speed,max_speed)
-                    human.xspeed = move_x
-                    human.yspeed = move_y
-                    people2.append(human)
-                elif(num_tab == 3):
+                if(num_tab == 3):
                     forbidden_spawn_coords3.append([start_x,start_y,start_x+diameter,start_y+diameter])
 
                     ball = canvas3.create_oval(start_x, start_y,start_x+diameter, start_y+diameter, outline="black",
@@ -537,27 +405,7 @@ if(SCREEN.name != 'settings'):
                     human.yspeed = move_y
                     people3.append(human)
                 
-    # testovanie vsetkych ludi okrem karanteny
-    def test_everyone():
-        sample_size = round((n_people/100)*sample_slider.get())
-        sample_of_people = random.sample(people,sample_size)
-        for p in sample_of_people:
-            if((p.color == "red" or p.color == "yellow") and p.in_quarantine == False):
-                if(random.randint(0,100) < p.prob_of_pos_test):
-                    p.prob_to_quar = 1
-                    p.prob_from_quar = 0
-                    p.move_to_quarantine(canvas,testing = True)
-
-    def test_everyone2():
-        sample_size = round((90/100)*sample_slider2.get())
-        sample_of_people = random.sample(people2,sample_size)
-        for p in sample_of_people:
-            if((p.color == "red" or p.color == "yellow") and p.in_quarantine == False):
-                if(random.randint(0,100) < p.prob_of_pos_test):
-                    p.prob_to_quar = 1
-                    p.prob_from_quar = 0
-                    p.move_to_quarantine(canvas2,testing = True)
-
+    #test people for quarantine
     def test_everyone3():
         sample_size = round((90/100)*widget_slider8.get())
         sample_of_people = random.sample(people3,sample_size)
@@ -567,25 +415,13 @@ if(SCREEN.name != 'settings'):
                     p.prob_to_quar = 1
                     p.prob_from_quar = 0
                     p.move_to_quarantine(canvas3,testing = True)
-    #testovanie ludi v karantene
-    def test_people_in_quarantine():
-        for p in people:
-            if(p.in_quarantine == True and p.color != "red" and p.color != "yellow"):
-                p.prob_from_quar = 1
-                p.move_from_quarantine(canvas)
-
-    def test_people_in_quarantine2():
-        for p in people2:
-            if(p.in_quarantine == True and p.color != "red" and p.color != "yellow"):
-                p.prob_from_quar = 1
-                p.move_from_quarantine(canvas2)
-
+    #test people in quarantine
     def test_people_in_quarantine3():
         for p in people3:
             if(p.in_quarantine == True and p.color != "red" and p.color != "yellow"):
                 p.prob_from_quar = 1
                 p.move_from_quarantine(canvas3)
-    # spocitanie ludi v karantene
+    #count ppl in quarantine
     def number_of_people_in_quarantine(people):
         number = 0
         for p in people:
@@ -593,6 +429,7 @@ if(SCREEN.name != 'settings'):
                 number += 1
         return number
 
+    #set people probabilities
     def configure_people(ppl,size_of_sample,pof):
         sample_size = round((len(ppl)/100)*size_of_sample)
         sample = random.sample(ppl,sample_size)
@@ -604,648 +441,348 @@ if(SCREEN.name != 'settings'):
                 ppl_without_rules.append(p)
 
         for p in ppl:
+            p.prob_mob = SETTINGS['p_mobility']
+            p.prob_central = SETTINGS['p_central']
             p.prob_of_infection += pof
             p.last_prob = p.prob_of_infection
 
-    spawn_people(n=n_people,diameter=diameter,num_tab=1, min_x = bounds_x_main[0], min_y = bounds_y_main[0], max_x = bounds_x_main[1]-2, max_y = bounds_y_main[1],window=1,max_speed=Settings_Tab3['max_speed'])
+    def sp_simulation():
+        global loop
+        if(loop):
+            loop=False
+        else:
+            loop=True
 
-    for i in range(0,9):
-        bounds_x = bounds_x_main2[i]
-        bounds_y = bounds_y_main2[i]
-        spawn_people(n=10,diameter=diameter,num_tab=2,min_x=bounds_x[0], min_y=bounds_y[0], max_x=bounds_x[1], max_y = bounds_y[1],window=i,max_speed=Settings_Tab3['max_speed'])
+    def close_simulation():
+        global run
+        run = False
+        sys.exit()
 
+    def save_settings():
+        path = os.path.join(os.path.dirname(os.path.abspath(__file__)),'Settings')
+        if not os.path.exists(path):
+            os.makedirs(path)
+        #print(SETTINGS)
+        xml = dicttoxml(SETTINGS)
+        f = tkFileDialog.asksaveasfile(mode="w",defaultextension=".xml")
+        if(f is None):
+            print("file is none")
+            return
+        f.write(xml.decode("utf8"))
+        f.close()
+        #print(xml.decode("utf8"))
+        
+    def save_sim():
+        f = tkFileDialog.asksaveasfile(mode="w",defaultextension=".png")
+        if(f is None):
+            print("file is none")
+            return
+        print(f.name)
+        f.close()
+        fig3.savefig(f.name)
 
-    ##TAB 3 ###
-    bx = bounds_x_dict[Settings_Tab3['n_areas']]
-    by = bounds_y_dict[Settings_Tab3['n_areas']]
+    
+    def save_whole_simulation(name):
+        path = os.path.join(os.path.dirname(os.path.abspath(__file__)),'Testing',name)
+        #first XML
+        xml_path = path+".xml"
+        xml = dicttoxml(SETTINGS)
+        f = open(xml_path,"w")
+        if(f is None):
+            print("file is none")
+            return
+        f.write(xml.decode("utf8"))
+        f.close()
+        #png
+        png_path = path+".png"
+        fig3.savefig(png_path)
+
+        #pdf
+        pdf_path = path+".pdf"
+        pdf_canvas = PDFCanvas(pdf_path,pagesize=LETTER)
+
+        settings_string = ["SETTINGS USED:",
+        "• Social distancing : {}".format(SETTINGS['social_distancing']),
+        "• Quarantine : {}".format(SETTINGS['quarantine']),
+        "• Number of people : {}".format(SETTINGS['n_people']),
+        "• Number of areas: {}".format(SETTINGS['n_areas']),
+        "• Central area : {}".format(SETTINGS['central']),
+        "• MAX_SPEED : {}".format(SETTINGS['max_speed']),
+        "• Probability of infection: {}".format(SETTINGS['prob_of_infection']),
+        "• Size of infectious area(around every individual): {}".format(SETTINGS['size_of_infection_area']),
+        "• Sample size of people that do not respect the rules(%): {}".format(SETTINGS['rules_sample']),
+        "• Mobility: {}".format(SETTINGS['mobility']),
+        "• Probability of traveling between areas: {}".format(SETTINGS['p_mobility']),
+        "• Probability of traveling to central area: {}".format(SETTINGS['p_central'])]
+        
+        x = 1*inch
+        y = 10*inch
+        pdf_canvas.setFont("Times-Roman", 20)
+        for idx,row in enumerate(settings_string):
+            if(idx == 1):
+                pdf_canvas.setFont("Times-Roman", 10)
+                x += 0.1*inch
+            pdf_canvas.drawString(x,y,row)            
+            y -= 0.2*inch
+        
+        imgdata = BytesIO()
+        temp_fig = fig3
+        temp_fig.set_size_inches(6,4)
+        temp_fig.savefig(imgdata,format="svg")
+        imgdata.seek(0)
+
+        image = svg2rlg(imgdata)
+
+        pdf_canvas.setFont("Times-Roman", 20)
+        pdf_canvas.drawString(x-0.1*inch,y-0.1*inch,"OUTPUT GRAPH:")
+        renderPDF.draw(image,pdf_canvas,x-0.9*inch,y-5.2*inch)
+        pdf_canvas.save()
+        #print(path,'\n',xml_path,'\n',png_path,'\n',pdf_path)
+
+    #add people to areas
+    bx = bounds_x_dict[SETTINGS['n_areas']]
+    by = bounds_y_dict[SETTINGS['n_areas']]
     n_ppl_area = 0
-    mod = Settings_Tab3['n_people'] % Settings_Tab3['n_areas']
+    mod = SETTINGS['n_people'] % SETTINGS['n_areas']
     if(mod == 0):
-        n_ppl_area = Settings_Tab3['n_people']/Settings_Tab3['n_areas']
+        n_ppl_area = SETTINGS['n_people']/SETTINGS['n_areas']
     else:
-        n_ppl_area = (Settings_Tab3['n_people']-mod)/Settings_Tab3['n_areas']
+        n_ppl_area = (SETTINGS['n_people']-mod)/SETTINGS['n_areas']
         for i in range(mod):
-            p = random.randint(0,Settings_Tab3['n_areas']-1)
+            p = random.randint(0,SETTINGS['n_areas']-1)
             bounds_x = bx[p]
             bounds_y = by[p]
-            spawn_people(n=1,diameter=diameter,num_tab=3,min_x=bounds_x[0], min_y=bounds_y[0], max_x=bounds_x[1], max_y = bounds_y[1],window=p,max_speed=Settings_Tab3['max_speed'])
-
+            spawn_people(n=1,diameter=diameter,num_tab=3,min_x=bounds_x[0], min_y=bounds_y[0], max_x=bounds_x[1], max_y = bounds_y[1],window=p,max_speed=SETTINGS['max_speed'])
     
-    for i in range(0,Settings_Tab3['n_areas']):
+    for i in range(0,SETTINGS['n_areas']):
         bounds_x = bx[i]
         bounds_y = by[i]
-        spawn_people(n=int(n_ppl_area),diameter=diameter,num_tab=3,min_x=bounds_x[0], min_y=bounds_y[0], max_x=bounds_x[1], max_y = bounds_y[1],window=i,max_speed=Settings_Tab3['max_speed'])
+        spawn_people(n=int(n_ppl_area),diameter=diameter,num_tab=3,min_x=bounds_x[0], min_y=bounds_y[0], max_x=bounds_x[1], max_y = bounds_y[1],window=i,max_speed=SETTINGS['max_speed'])
 
-
-    configure_people(people3,Settings_Tab3['rules_sample'],Settings_Tab3['prob_of_infection'])
-####################
-
-
-    # print(len(people))
-    # for p in people:
-    #     print('id',p.id_,'speed:',p.xspeed,',',p.yspeed)
+    configure_people(people3,SETTINGS['rules_sample'],SETTINGS['prob_of_infection'])
+    ####################
 
     ########## MENU ########## 
-
-    ########################################### CANVAS 1 ################################################
-    # WIDGET_SLIDER
-
-    widget_slider = Scale(canvas,from_= 0, to = 50, orient=HORIZONTAL)
-    widget_slider.set(15)
-    widget_slider.pack()
-    canvas.create_window(740, 115, window=widget_slider)
-
-    area_slider = widget_slider.get()
-
-    widget_slider2 = Scale(canvas, from_= 0, to = 100, orient=HORIZONTAL)
-    widget_slider2.set(20)
-    widget_slider2.pack()
-    canvas.create_window(740, 155, window=widget_slider2)
-
-    widget_slider3 = Scale(canvas, from_= 0, to = 20, orient=HORIZONTAL)
-    widget_slider3.set(5)
-    widget_slider3.pack()
-    canvas.create_window(740, 195, window=widget_slider3)
-    #slider pre velkost samplu na testovanie
-    sample_slider = Scale(canvas, from_= 1, to = 100, orient=HORIZONTAL)
-    sample_slider.set(50)
-    sample_slider.pack()
-    canvas.create_window(740, 35, window=sample_slider)
-
-    p_rules_slider = Scale(canvas, from_= 1, to = 100, orient=HORIZONTAL)
-    p_rules_slider.set(50)
-    p_rules_slider.pack()
-    canvas.create_window(740, 75, window=p_rules_slider)
-
-    # WIDGET_LABELS
-    widget_title = Label(canvas, text='Settings')
-    widget_title.pack()
-    canvas.create_window(670, 10, window=widget_title)
-
-    widget_label = Label(canvas, text='Number of people in central area: 0')
-    widget_label.pack()
-    canvas.create_window(656, 230, window=widget_label)  
-
-    widget_label2 = Label(canvas, text='Infection area of effect:')
-    widget_label2.pack()
-    canvas.create_window(625, 120, window=widget_label2)
-
-    widget_label3 = Label(canvas, text='Probability of infection:')
-    widget_label3.pack()
-    canvas.create_window(625, 160, window=widget_label3)
-
-    widget_label4 = Label(canvas, text='Number of people in quarantine: 0')
-    widget_label4.pack()
-    canvas.create_window(655, 250, window=widget_label4)
-
-    widget_label6 = Label(canvas, text='Social distancing size:')
-    widget_label6.pack()
-    canvas.create_window(620, 200, window=widget_label6)
-    
-    widget_label7 = Label(canvas, text='Testing of people(%):')
-    widget_label7.pack()
-    canvas.create_window(620, 40, window=widget_label7)
-
-    widget_label8 = Label(canvas, text='Violation of rules(%):')
-    widget_label8.pack()
-    canvas.create_window(620, 80, window=widget_label8)
-
-    # CHECK_BUTTONS
-    chcek_button1_status = IntVar()
-    check_button1 = Checkbutton(canvas, text='Soc. dist.', variable=chcek_button1_status)
-    check_button1.pack()
-    canvas.create_window(600, 270, window=check_button1)
-
-    testing_button = Button(canvas,text = "Testing", command = test_everyone)
-    canvas.create_window(600,295,window = testing_button)
-
-    quarantine_button = Button(canvas,text = "Quarantine", command = test_people_in_quarantine)
-    canvas.create_window(670,295,window = quarantine_button)
-
-    ######################################### Canvas 2 #######################################
-    # WIDGET_SLIDER
-
-    widget_slider4 = Scale(canvas2,from_= 0, to = 50, orient=HORIZONTAL)
-    widget_slider4.set(15)
-    widget_slider4.pack()
-    canvas2.create_window(200, 670, window=widget_slider4)
-
-    area_slider2 = widget_slider.get()
-
-    widget_slider5 = Scale(canvas2, from_= 0, to = 100, orient=HORIZONTAL)
-    widget_slider5.set(20)
-    widget_slider5.pack()
-    canvas2.create_window(445, 670, window=widget_slider5)
-
-    widget_slider6 = Scale(canvas2, from_= 0, to = 20, orient=HORIZONTAL)
-    widget_slider6.set(5)
-    widget_slider6.pack()
-    canvas2.create_window(680, 670, window=widget_slider6)
-
-    widget_slider7 = Scale(canvas2, from_= 0, to = 10, orient=HORIZONTAL)
-    widget_slider7.set(1)
-    widget_slider7.pack()
-    canvas2.create_window(850, 670, window=widget_slider7)
-
-    sample_slider2 = Scale(canvas2, from_= 1, to = 100, orient=HORIZONTAL)
-    sample_slider2.set(50)
-    sample_slider2.pack()
-    canvas2.create_window(870, 30, window=sample_slider2)
-
-    p_rules_slider2 = Scale(canvas2, from_= 1, to = 100, orient=HORIZONTAL)
-    p_rules_slider2.set(50)
-    p_rules_slider2.pack()
-    canvas2.create_window(870, 90, window=p_rules_slider2)
-
-    # WIDGET_LABELS
-
-    widget_label9 = Label(canvas2, text='Infection area of effect:')
-    widget_label9.pack()
-    canvas2.create_window(92, 677, window=widget_label9)
-
-    widget_label10 = Label(canvas2, text='Probability of infection:')
-    widget_label10.pack()
-    canvas2.create_window(335, 677, window=widget_label10)
-
-    widget_label11 = Label(canvas2, text='Number of people in quarantine: 0')
-    widget_label11.pack()
-    canvas2.create_window(600, 640, window=widget_label11)
-
-    widget_label12 = Label(canvas2, text='Probability of infection (%): 0')
-    widget_label12.pack()
-    canvas2.create_window(350, 640, window=widget_label12)
-
-    widget_label13 = Label(canvas2, text='Social distancing size:')
-    widget_label13.pack()
-    canvas2.create_window(566, 677, window=widget_label13)
-
-    widget_label14 = Label(canvas2, text='Turists:')
-    widget_label14.pack()
-    canvas2.create_window(780, 677, window=widget_label14)
-
-    # CHECK_BUTTONS
-    chcek_button2_status = IntVar()
-    check_button2 = Checkbutton(canvas2, text='Soc. dist.', variable=chcek_button2_status)
-    check_button2.pack()
-    canvas2.create_window(750, 640, window=check_button2)
-
-    # BUTTON
-    testing_button2 = Button(canvas2,text = "Testing", command = test_everyone2)
-    canvas2.create_window(850,640,window = testing_button2)
-
-    quarantine_button2 = Button(canvas2,text = "Quarantine", command = test_people_in_quarantine2)
-    canvas2.create_window(950,640,window = quarantine_button2)
-
-    ######################################### Canvas 3 #######################################
-
-    # WIDGET_LABELS
     
     widget_label16 = Label(canvas3, text='Settings')
     widget_label16.pack()
-    canvas3.create_window(720, 30, window=widget_label16)
+    canvas3.create_window(720, 150, window=widget_label16)
+    #150
 
-    if(Settings_Tab3['quarantine'] == True and Settings_Tab3['social_distancing'] == True):
+    # Create widgets, depending on settings
+    if(SETTINGS['quarantine'] == True and SETTINGS['social_distancing'] == True):
         # WIDGET_SLIDER
     
         widget_slider8 = Scale(canvas3,from_= 0, to = 100, orient=HORIZONTAL)
         widget_slider8.set(50)
         widget_slider8.pack()
-        canvas3.create_window(800, 60, window=widget_slider8)
-
+        canvas3.create_window(800, 180, window=widget_slider8)
+        #180,220
         widget_slider9 = Scale(canvas3,from_= 0, to = 20, orient=HORIZONTAL)
         widget_slider9.set(5)
         widget_slider9.pack()
-        canvas3.create_window(800, 100, window=widget_slider9)
+        canvas3.create_window(800, 220, window=widget_slider9)
         
         # WIDGET_LABELS
 
         widget_label13 = Label(canvas3, text='Social distancing size:')
         widget_label13.pack()
-        canvas3.create_window(685, 105, window=widget_label13)
-
+        canvas3.create_window(685, 225, window=widget_label13)
+        #225,185
         widget_label15 = Label(canvas3, text='Testing of people (%):')
         widget_label15.pack()
-        canvas3.create_window(685, 65, window=widget_label15)
+        canvas3.create_window(685, 185, window=widget_label15)
 
         # BUTTON
         testing_button3 = Button(canvas3,text = "Testing", command = test_everyone3)
-        canvas3.create_window(650,140,window = testing_button3)
-
+        canvas3.create_window(650,260,window = testing_button3)
+        #260,260
         quarantine_button3 = Button(canvas3,text = "Quarantine", command = test_people_in_quarantine3)
-        canvas3.create_window(720,140,window = quarantine_button3)
-    elif(Settings_Tab3['quarantine'] == True and Settings_Tab3['social_distancing'] == False):
+        canvas3.create_window(720,260,window = quarantine_button3)
+    elif(SETTINGS['quarantine'] == True and SETTINGS['social_distancing'] == False):
         # WIDGET_SLIDER
     
         widget_slider8 = Scale(canvas3,from_= 0, to = 100, orient=HORIZONTAL)
         widget_slider8.set(50)
         widget_slider8.pack()
-        canvas3.create_window(800, 60, window=widget_slider8)
-        
+        canvas3.create_window(800, 180, window=widget_slider8)
+        #180
         # WIDGET_LABELS
 
         widget_label15 = Label(canvas3, text='Testing of people (%):')
         widget_label15.pack()
-        canvas3.create_window(685, 65, window=widget_label15)
-
+        canvas3.create_window(685, 185, window=widget_label15)
+        #185
         # BUTTON
         testing_button3 = Button(canvas3,text = "Testing", command = test_everyone3)
-        canvas3.create_window(650,105,window = testing_button3)
-
+        canvas3.create_window(650,225,window = testing_button3)
+        #225,225
         quarantine_button3 = Button(canvas3,text = "Quarantine", command = test_people_in_quarantine3)
-        canvas3.create_window(720,105,window = quarantine_button3)
-
-    elif(Settings_Tab3['quarantine'] == False and Settings_Tab3['social_distancing'] == True):
+        canvas3.create_window(720,225,window = quarantine_button3)
+    elif(SETTINGS['quarantine'] == False and SETTINGS['social_distancing'] == True):
         
         widget_label13 = Label(canvas3, text='Social distancing size:')
         widget_label13.pack()
-        canvas3.create_window(685, 65, window=widget_label13)
-
+        canvas3.create_window(685, 185, window=widget_label13)
+        #185,180
         widget_slider9 = Scale(canvas3,from_= 0, to = 20, orient=HORIZONTAL)
         widget_slider9.set(5)
         widget_slider9.pack()
-        canvas3.create_window(800, 60, window=widget_slider9)
+        canvas3.create_window(800, 180, window=widget_slider9)
+        
+    start_button = Button(canvas3,text = "START/PAUSE", command = sp_simulation)
+    canvas3.create_window(720,30,window = start_button)
 
+    exit_button = Button(canvas3,text = "CLOSE", command = close_simulation)
+    canvas3.create_window(720,60,window = exit_button)
 
+    save_settings_btn = Button(canvas3,text="EXPORT SETTINGS",command = save_settings)
+    canvas3.create_window(720,90,window=save_settings_btn)
+
+    save_simulation = Button(canvas3,text="SAVE SIMULATION GRAPH",command = save_sim)
+    canvas3.create_window(720,120,window=save_simulation)
+    # 30,60,90,120
     ####### END OF MENU ######
-
-    tabID = notebook.index(notebook.select())
-
-    print(len(people),len(people2))
-
-    while 1:
-        #print('Settings:\nN_PPL:{}\nQuar:{}\nSD:{}\nAreas:{}'.format(Settings_Tab3['n_people'],Settings_Tab3['quarantine'],Settings_Tab3['social_distancing'],Settings_Tab3['n_areas']))
-        tabID=notebook.index(notebook.select())
-        # choice one human, who will be infectioned
-        if(timer_tab1 == 10):
-            infected_id_tab1 = numpy.random.randint(people[0].id_,people[n_people-1].id_)
-            num_infected += 1
-            for p in people:
-                if(p.id_ == infected_id_tab1):
-                    p.color = "red"
-                
-        if(timer_tab2 == 10):
-            infected_id_tab2 = numpy.random.randint(people2[0].id_,people2[len(people2)-1].id_)
-            num_infected += 1
-            for p in people2:
-                if(p.id_ == infected_id_tab2):
-                    p.color = "red"
-
+    #MAIN LOOP
+    while run:
+        # choice one human, who will be infected
         if(timer_tab3 == 10):
             infected_id_tab3 = numpy.random.randint(people3[0].id_,people3[len(people3)-1].id_)
             num_infected += 1
             for p in people3:
                 if(p.id_ == infected_id_tab3):
                     p.color = "red"            
+        # START/PAUSE
+        if(loop):
+            timer_tab3 += 1                
+            for p in people3:
+                #if mobility is on, apply effect of mobility
+                if(SETTINGS['mobility']):
+                    random_p_mob = random.randint(0,1000)
+                    #print(random_p_mob)
+                    if(random_p_mob <= p.prob_mob):
+                        random_window = random.randint(0,SETTINGS['n_areas']-1)
+                        while(random_window == p.window):
+                            random_window = random.randint(0,SETTINGS['n_areas']-1)
+                        window_x = bx[random_window]
+                        window_y = by[random_window]
+                        window_w = abs(window_x[0]-window_x[1])
+                        window_h = abs(window_y[0]-window_y[1])
 
-        if(tabID == 0):
-            if(loop):
-                social_distancing = chcek_button1_status.get()
-                area_slider = widget_slider.get()
-                probability_slider = widget_slider2.get()
-                rules_slider = p_rules_slider.get()
+                        rand_x = random.randint(int(window_x[0])+10,int(window_x[1])-10)
+                        rand_y = random.randint(int(window_y[0])+10,int(window_y[1])-10)
 
-                #if(rules_sample != rules_slider):
-                sample_size = round((n_people/100)*rules_slider)
-                sample = random.sample(people,sample_size)
-                print('ss',sample_size,'pwr',len(ppl_without_rules))
-                if(len(ppl_without_rules) < len(sample)):
-                    for p in sample:
-                        if(p not in ppl_without_rules):
-                            p.rules_apply = False
-                            ppl_without_rules.append(p)
-                        
-                elif(len(ppl_without_rules) > len(sample)):
-                    n = abs(len(ppl_without_rules) - len(sample))
-                    for i in range(n):
-                        x = ppl_without_rules.pop(random.randint(0,len(ppl_without_rules)-1))
-                        x.rules_apply = True
-                else:
-                    pass
+                        p.move_self(canvas3,rand_x-p.x,rand_y-p.y)
+                        p.window = random_window
 
-                    rules_sample = rules_slider
+                #if central area is on, apply effect of moving to central areas(shops)
+                if(SETTINGS['central']):
+                    rand_number = random.randint(0,1000)
+                    if(rand_number <= p.prob_central):
+                        if(p.in_quarantine == False):
+                            p.move_to_center(canvas3,bx[p.window],by[p.window])
 
-                if(probability != probability_slider):
-                    for p in people:
-                        p.prob_of_infection = probability_slider
-                        probability = probability_slider
-                timer_tab1 += 1
-                    
-                # choice random human and set middle position
-                rand_number = random.randint(0,100)
-                if(rand_number < 30):
-                    if(people[rand_number].in_quarantine == False):
-                        people[rand_number].motion = False
-                        #x1,y1,_,_ = canvas.coords(people[rand_number].id_)
-                        people[rand_number].last_x = people[rand_number].x
-                        people[rand_number].last_y = people[rand_number].y
-                        people[rand_number].move_self(canvas,bounds_x_central[0]-people[rand_number].x+(16-10)/2,bounds_y_central[0]-people[rand_number].y+(16-10)/2)
-                        #canvas.coords(people[rand_number].id_,315,315,315+diameter,315+diameter)
-
-                n_people_in_area = 0
-                for p in people:
-                    if(p.tab == 1):
+                #if infected, small chance to send to quarantine, only if quarantine is on
+                if(p.tab == 3):
+                    if(SETTINGS['quarantine']):
                         if(p.color == "red"):
                             p.prob_to_quar = 0.01
                             p.prob_from_quar = 0
-                            p.move_to_quarantine(canvas)
+                            p.move_to_quarantine(canvas3)
                         else:
                             p.prob_to_quar = 0
                             p.prob_from_quar = 0.1
-                            p.move_from_quarantine(canvas)
-                        if(p.in_quarantine):
-                            bounds_x = bounds_x_quar
-                            bounds_y = bounds_y_quar
-                        else:
-                            bounds_x = bounds_x_main
-                            bounds_y = bounds_y_main
+                            p.move_from_quarantine(canvas3)
 
-                        if(not p.motion):
-                            n_people_in_area += 1
-                        canvas.itemconfig(p.id_,fill=p.color)
-                        if(p.color == "red" or p.color == "yellow"):
-                            p.setOneMoreDay()
-                            p.recover(200)
-
-                        if(p.motion == True):
-                            p.border_intersect(bounds_x,bounds_y,canvas)
-                            #p.border_intersect2(bounds_x,bounds_y,canvas)
-                            p.move_self(canvas)
-                        else:
-                            p.oneMoreDayNoMotion()
-
-                        if(p.days_no_motion > 20):
-                            p.motion = True
-                            last_x, last_y = p.getLastPosition()
-                            p.days_no_motion = 0
-                            p.move_self(canvas,last_x-p.x,last_y-p.y)
-                        for n in people:
-                            if(n.tab == 1):
-                                if(p.in_quarantine == False and n.in_quarantine == False):
-                                    if(social_distancing):
-                                        distance_slider = widget_slider3.get()
-                                        intersecting_aoe = p.social_distancing(area_slider,n,canvas,distance_slider)
-                                        #intersecting_aoe = p.social_distancing2(area_slider,n,canvas,distance_slider)
-                                    else:
-                                        intersecting = p.people_intersect(n,canvas)
-                                        #intersecting = p.people_intersect2(n,canvas)
-                                    #nakaza
-                                    if(intersecting or intersecting_aoe):
-                                        if(intersecting):
-                                            p.prob_of_infection = 100
-                                        else:
-                                            p.prob_of_infection = probability_slider
-                                        if(n.color =="red" or p.color == "red" or n.color == "yellow" or p.color == "yellow"):
-                                            if(not (n.color == "green" or p.color == "green")):
-                                                random_number = numpy.random.randint(0,100)
-                                                if(p.motion == False):
-                                                    p.prob_of_infection += 20
-                                                if(random_number <= p.prob_of_infection):
-                                                    random_number = numpy.random.randint(0,100)
-                                                    if(p.color == "blue"):
-                                                        if(random_number <= 70):
-                                                            p.color = "red"
-                                                        else:
-                                                            p.color = "yellow"
-                                                    if(n.color == "blue"):
-                                                        if(random_number <= 70):
-                                                            n.color = "red"
-                                                        else:
-                                                            n.color = "yellow"
-                                                
-                widget_label.configure(text='Number of people in central area: {}'.format(n_people_in_area))
-                widget_label4.configure(text='Number of people in quarantine: {}'.format(number_of_people_in_quarantine(people))) 
-                num_infected = number_of_infected(people,1)
-                num_recovered = number_of_recovered(people,1)
-                num_sus = n_people - num_infected - num_recovered
-                #print("infected: ",num_infected,", time:", timer_tab1)
-                if(timer_tab1 % 2 == 0):
-                    animate(num_infected,timer_tab1,num_sus,num_recovered,n_people)
-            # print('som na tabe1')
-        elif(tabID == 1):
-            if(loop):
-                social_distancing = chcek_button2_status.get()
-                area_slider = widget_slider4.get()
-                probability_slider = widget_slider5.get()
-                number_of_turists = widget_slider7.get()
-
-                rules_slider2 = p_rules_slider2.get()
-
-                if(rules_sample2 != rules_slider2):
-                    sample_size = round((len(people2)/100)*rules_slider2)
-                    sample = random.sample(people2,sample_size)
-                    if(len(ppl_without_rules2) < len(sample)):
-                        for p in sample:
-                            if(p not in ppl_without_rules2):
-                                p.rules_apply = False
-                                ppl_without_rules2.append(p)
-                            
-                    elif(len(ppl_without_rules2) > len(sample)):
-                        n = abs(len(ppl_without_rules2) - len(sample))
-                        for i in range(n):
-                            x = ppl_without_rules2.pop(random.randint(0,len(ppl_without_rules2)-1))
-                            x.rules_apply = True
+                    if(p.in_quarantine and SETTINGS['quarantine']):
+                        bounds_x = bxq
+                        bounds_y = byq
                     else:
-                        pass
+                        bounds_x = bx[p.window]
+                        bounds_y = by[p.window]
 
-                    rules_sample2 = rules_slider2
+                    canvas3.itemconfig(p.id_,fill=p.color)
+                    #recovery after some time, 200 ticks
+                    if(p.color == "red" or p.color == "yellow"):
+                        p.setOneMoreDay()
+                        p.recover(200)
 
-
-                if(probability != probability_slider):
-                    for p in people2:
-                        p.prob_of_infection = probability_slider
-                        probability = probability_slider
-                timer_tab2 += 1
-                    
-                for i in range(0,number_of_turists):
-                    done = False
-                    while(done == False):
-                        random_human = numpy.random.randint(people2[0].id_,people2[len(people2)-1].id_)
-                        for p in people2:
-                            if(p.id_ == random_human and p.tab == 2):
-                                random_window = numpy.random.randint(0,8)
-                                window = bounds_x_main2[random_window]
-                                p.move_self(canvas2,window[0]-125,window[1]-95)
-                                done = True
-                                p.window = random_window
-                                break
-                    
-
-                for p in people2:
-                    if(p.tab == 2):
-                        if(p.color == "red"):
-                            p.prob_to_quar = 0.01
-                            p.prob_from_quar = 0
-                            p.move_to_quarantine(canvas2)
-                        else:
-                            p.prob_to_quar = 0
-                            p.prob_from_quar = 0.1
-                            p.move_from_quarantine(canvas2)
-                        if(p.in_quarantine):
-                            bounds_x = bounds_x_quar2
-                            bounds_y = bounds_y_quar2
-                        else:
-                            bounds_x = bounds_x_main2[p.window]
-                            bounds_y = bounds_y_main2[p.window]
-
-                        canvas2.itemconfig(p.id_,fill=p.color)
-                        if(p.color == "red" or p.color == "yellow"):
-                            p.setOneMoreDay()
-                            p.recover(200)
-
-                        if(p.motion == True):
-                            p.border_intersect2(bounds_x,bounds_y,canvas2)
-                            p.move_self(canvas2)
-                        else:
-                            p.oneMoreDayNoMotion()
-
-                        if(p.days_no_motion > 20):
-                            p.motion = True
-                            last_x, last_y = p.getLastPosition()
-                            p.days_no_motion = 0
-                            p.move_self(canvas2,last_x-p.x,last_y-p.y)
-                        for n in people2:
-                            if(n.tab == 2):
-                                if(p.in_quarantine == False and n.in_quarantine == False):
-                                    if(social_distancing):
-                                        distance_slider = widget_slider3.get()
-                                        intersecting_aoe = p.social_distancing(area_slider,n,canvas2,distance_slider)
-                                        #intersecting_aoe = p.social_distancing2(area_slider,n,canvas2,distance_slider)
+                    #move if not in central area
+                    if(p.motion == True):
+                        p.border_intersect(bounds_x,bounds_y,canvas3)
+                        p.move_self(canvas3)
+                    else:
+                        p.oneMoreDayNoMotion()
+                    #send back from center area
+                    if(p.days_no_motion > 20):
+                        p.move_from_center(canvas3)
+                    for n in people3:
+                        if(n.tab == 3):
+                            if(p.in_quarantine == False and n.in_quarantine == False):
+                                #Social distancing effect
+                                if(SETTINGS['social_distancing']):
+                                    intersecting_aoe = p.social_distancing(SETTINGS['size_of_infection_area'],n,canvas3,widget_slider9.get())
+                                else:
+                                    intersecting = p.people_intersecting(n,canvas3)
+                                
+                                infectious_area = p.in_infectious_area(SETTINGS['size_of_infection_area'],n,canvas3)
+                                #infection, depends on probability
+                                if(intersecting or intersecting_aoe or infectious_area and (p.window == n.window)):
+                                    #if distance between people is too small
+                                    if(intersecting):
+                                        p.last_prob = p.prob_of_infection
+                                        p.prob_of_infection = 100
                                     else:
-                                        #intersecting = p.people_intersect2(n,canvas2)
-                                        intersecting = p.people_intersect(n,canvas2)
-                                    #nakaza
-                                    if(intersecting or intersecting_aoe):
-                                        if(intersecting):
-                                            p.prob_of_infection = 100
-                                        else:
-                                            p.prob_of_infection = probability_slider
-                                        if(n.color =="red" or p.color == "red" or n.color == "yellow" or p.color == "yellow"):
-                                            if(not (n.color == "green" or p.color == "green")):
+                                        p.prob_of_infection = p.last_prob
+                                    #infect got a 70% chance to get infected with symptomps
+                                    if(n.color =="red" or p.color == "red" or n.color == "yellow" or p.color == "yellow"):
+                                        if(not (n.color == "green" or p.color == "green")):
+                                            random_number = numpy.random.randint(0,100)
+                                            if(p.motion == False):
+                                                p.last_prob = p.prob_of_infection
+                                                p.prob_of_infection += 20
+                                            else:
+                                                p.prob_of_infection = p.last_prob
+                                            if(random_number <= p.prob_of_infection):
                                                 random_number = numpy.random.randint(0,100)
-                                                if(p.motion == False):
-                                                    p.prob_of_infection += 20
-                                                if(random_number <= p.prob_of_infection):
-                                                    random_number = numpy.random.randint(0,100)
-                                                    if(p.color == "blue"):
-                                                        if(random_number <= 70):
-                                                            p.color = "red"
-                                                        else:
-                                                            p.color = "yellow"
-                                                    if(n.color == "blue"):
-                                                        if(random_number <= 70):
-                                                            n.color = "red"
-                                                        else:
-                                                            n.color = "yellow"
-        elif(tabID == 2):
-            if(loop):
-                timer_tab3 += 1
-                
-                if(Settings_Tab3['mobility']):
-                    done = False
-                    while(done == False):
-                        random_human = numpy.random.randint(people3[0].id_,people3[len(people3)-1].id_)
-                        for p in people3:
-                            if(p.id_ == random_human and p.tab == 3):
-                                random_window = random.randint(0,Settings_Tab3['n_areas']-1)
-                                if(p.window != random_window):
-                                    window_x = bx[random_window]
-                                    window_y = by[random_window]
-                                    window_w = abs(window_x[0]-window_x[1])
-                                    window_h = abs(window_y[0]-window_y[1])
-
-                                    p.move_self(canvas3,(window_x[0]+window_w/2)-p.x,(window_y[0]+window_h/2)-p.y)
-                                    done = True
-                                    p.window = random_window
-                                break
-                    
-                for p in people3:
-                    if(p.tab == 3):
-                        if(Settings_Tab3['quarantine']):
-                            if(p.color == "red"):
-                                p.prob_to_quar = 0.01
-                                p.prob_from_quar = 0
-                                p.move_to_quarantine(canvas3)
-                            else:
-                                p.prob_to_quar = 0
-                                p.prob_from_quar = 0.1
-                                p.move_from_quarantine(canvas3)
-
-                        if(p.in_quarantine and Settings_Tab3['quarantine']):
-                            bounds_x = bxq
-                            bounds_y = byq
-                        else:
-                            bounds_x = bx[p.window]
-                            bounds_y = by[p.window]
-
-                        canvas3.itemconfig(p.id_,fill=p.color)
-                        if(p.color == "red" or p.color == "yellow"):
-                            p.setOneMoreDay()
-                            p.recover(200)
-
-                        if(p.motion == True):
-                            p.border_intersect(bounds_x,bounds_y,canvas3)
-                            p.move_self(canvas3)
-                        else:
-                            p.oneMoreDayNoMotion()
-
-                        if(p.days_no_motion > 20):
-                            p.motion = True
-                            last_x, last_y = p.getLastPosition()
-                            p.days_no_motion = 0
-                            p.move_self(canvas3,last_x-p.x,last_y-p.y)
-                        for n in people3:
-                            if(n.tab == 3):
-                                if(p.in_quarantine == False and n.in_quarantine == False):
-                                    if(Settings_Tab3['social_distancing']):
-                                        intersecting_aoe = p.social_distancing(Settings_Tab3['size_of_infection_area'],n,canvas3,widget_slider9.get())
-                                        #intersecting_aoe = p.social_distancing2(area_slider,n,canvas2,distance_slider)
-                                    else:
-                                        #intersecting = p.people_intersect2(n,canvas2)
-                                        intersecting = p.people_intersect(n,canvas3)
-                                    
-                                    infectious_area = p.in_infectious_area(Settings_Tab3['size_of_infection_area'],n,canvas3)
-                                    #nakaza
-                                    if(intersecting or intersecting_aoe or infectious_area and (p.window == n.window)):
-                                        if(intersecting):
-                                            p.last_prob = p.prob_of_infection
-                                            p.prob_of_infection = 100
-                                        else:
-                                            p.prob_of_infection = p.last_prob
-                                        if(n.color =="red" or p.color == "red" or n.color == "yellow" or p.color == "yellow"):
-                                            if(not (n.color == "green" or p.color == "green")):
-                                                random_number = numpy.random.randint(0,100)
-                                                if(p.motion == False):
-                                                    p.prob_of_infection += 20
-                                                if(random_number <= p.prob_of_infection):
-                                                    random_number = numpy.random.randint(0,100)
-                                                    if(p.color == "blue"):
-                                                        if(random_number <= 70):
-                                                            p.color = "red"
-                                                        else:
-                                                            p.color = "yellow"
-                                                    if(n.color == "blue"):
-                                                        if(random_number <= 70):
-                                                            n.color = "red"
-                                                        else:
-                                                            n.color = "yellow"
+                                                if(p.color == "blue"):
+                                                    if(random_number <= 70):
+                                                        p.color = "red"
+                                                    else:
+                                                        p.color = "yellow"
+                                                if(n.color == "blue"):
+                                                    if(random_number <= 70):
+                                                        n.color = "red"
+                                                    else:
+                                                        n.color = "yellow"
+        
+            #graph                                
+            num_infected = number_of_infected(people3,3)
+            num_recovered = number_of_recovered(people3,3)
+            num_sus = SETTINGS['n_people'] - num_infected - num_recovered
             
-                                                
-                num_infected = number_of_infected(people3,3)
-                num_recovered = number_of_recovered(people3,3)
-                num_sus = Settings_Tab3['n_people'] - num_infected - num_recovered
-                #print("infected: ",num_infected,", time:", timer_tab1)
-                if(timer_tab3 % 2 == 0):
-                    animate3(num_infected,timer_tab3,num_sus,num_recovered,Settings_Tab3['n_people'])
-            # print('som na tabe2')
-
-
-        if keyboard.is_pressed('q'):
-            if(loop == True):
-                loop = False
-            else:
-                loop = True
-        if keyboard.is_pressed('e'):
-            break
-
-        time.sleep(0)
+            if(timer_tab3 % 2 == 0):
+                #make graph animated
+                animate3(num_infected,timer_tab3,num_sus,num_recovered,SETTINGS['n_people'])
+                #check for infected if there is none, ask to save simulation
+                if(timer_tab3 > 30 and num_infected == 0 and asked_to_save == False):
+                    question_timer += 1
+                    if(question_timer > 10):
+                        asked_to_save = True
+                        loop = False
+                        result = tk.messagebox.askyesno("Simulation ended", "Simulation has ended, do you wish to save the simulation output and settings? If no, you can still continue the simulation and save everything manually.")
+                        if(result):
+                            name = tk.simpledialog.askstring("","Enter name of simulation")
+                            save_whole_simulation(name)
+                            time.sleep(1)
+                            result2 = tk.messagebox.askyesno("","Close simulation?")
+                            if(result2):
+                                close_simulation()
+                            else:
+                                loop = True
+                        else:
+                            loop = True
+        
+        #time.sleep(0)
+        
         screen.update()

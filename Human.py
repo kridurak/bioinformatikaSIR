@@ -235,44 +235,6 @@ class Human(object):
                     intersecting = True
             return intersecting
 
-    def people_intersect2(self,n,canvas):
-        if(self.motion and n.motion and self.in_quarantine == False):
-            intersecting = False
-            #1st ball middle coords
-            middle_x = self.x + (self.diameter/2)
-            middle_y = self.y + (self.diameter/2)
-
-            if(n != self):
-                #2nd ball middle coords
-                middle_nx = n.x + (n.diameter/2)
-                middle_ny = n.y + (n.diameter/2)
-
-                centers_distance = sqrt(((middle_x-middle_nx)*(middle_x-middle_nx))+((middle_ny-middle_y)*(middle_ny-middle_y)))
-
-                if(centers_distance <= self.diameter):
-                    # print('tukli sa')
-                    distance_x = abs(middle_nx-middle_x)
-                    distance_y = abs(middle_x-middle_y)
-                    if (distance_x <= distance_y):
-                        intersecting = True
-
-                        if ((self.yspeed > 0 and self.y < n.y) or (self.yspeed < 0 and self.y > n.y)):
-                            self.yspeed = -self.yspeed
-
-
-                        if ((n.yspeed > 0 and n.y < self.y) or (n.yspeed < 0 and n.y > self.y)):
-                            n.yspeed = -n.yspeed
-
-
-
-                    elif (distance_x > distance_y):
-                        if ((self.xspeed > 0 and self.x < n.x) or (self.xspeed < 0 and self.x > n.x)):
-                            self.xspeed = -self.xspeed
-
-                        if ((n.xspeed > 0 and n.x < self.x) or (n.xspeed < 0 and n.x > self.x)):
-                            n.xspeed = -n.xspeed
-            return intersecting
-
     def social_distancing(self,R,n,canvas,distance):
         if(self.motion and n.motion and self.in_quarantine == False and self.rules_apply):
             intersecting = False
@@ -317,36 +279,6 @@ class Human(object):
 
         if(not self.rules_apply):
             return self.people_intersect(n,canvas)
-
-    def social_distancing2(self,R,n,canvas,distance):
-        if(self.motion and n.motion and self.in_quarantine == False and self.rules_apply):
-            intersecting = False
-            #1st ball middle coords
-            middle_x = self.x + (self.diameter/2)
-            middle_y = self.y + (self.diameter/2)
-            if(n != self):
-                #2nd ball middle coords
-                middle_nx = n.x + (n.diameter/2)
-                middle_ny = n.y + (n.diameter/2)
-
-                centers_distance = sqrt(((middle_x-middle_nx)*(middle_x-middle_nx))+((middle_ny-middle_y)*(middle_ny-middle_y)))
-                if(centers_distance <= self.diameter+distance):
-                    distance_x = abs(middle_nx-middle_x)
-                    distance_y = abs(middle_x-middle_y)
-                    if(distance_x > distance_y):
-                        if(middle_y > middle_ny):
-                            self.move_self(canvas,0,self.diameter+distance-distance_y)
-                        else:
-                            self.move_self(canvas,0,(self.diameter+distance-distance_y)*-1)
-                    else:
-                        if(middle_x > middle_nx):
-                            self.move_self(canvas,self.diameter+distance-distance_x,0)
-                        else:
-                            self.move_self(canvas,(self.diameter+distance-distance_x)*-1,0)
-
-                if(centers_distance <= self.diameter+R):
-                    intersecting = True
-                return intersecting
 
     def move_to_quarantine(self,canvas,testing=False):
         if(testing):
