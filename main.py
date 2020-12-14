@@ -483,7 +483,10 @@ if(SCREEN.name != 'settings'):
 
     
     def save_whole_simulation(name):
-        path = os.path.join(os.path.dirname(os.path.abspath(__file__)),'Testing',name)
+        tp = os.path.join(os.path.dirname(os.path.abspath(__file__)),'Testing')
+        if not os.path.exists(tp):
+            os.makedirs(tp)
+        path = os.path.join(tp,name)
         #first XML
         xml_path = path+".xml"
         xml = dicttoxml(SETTINGS)
